@@ -222,7 +222,7 @@ main (int argc, char *argv[])
 
   /* Create gstreamer elements */
   /* Create Pipeline element that will form a connection of other elements */
-  pipeline = gst_pipeline_new ("dstest1-pipeline");
+  pipeline = gst_pipeline_new ("ds-redaction-pipeline");
 
   /* Source element for reading from the file */
   source = gst_element_factory_make ("filesrc", "file-source");

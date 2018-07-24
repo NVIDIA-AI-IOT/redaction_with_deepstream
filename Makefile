@@ -9,7 +9,7 @@
 #
 ################################################################################
 
-APP:= deepstream-test-shuo-app
+APP:= deepstream-redaction-app
 
 SRCS:= $(wildcard *.c)
 
