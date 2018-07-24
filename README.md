@@ -10,7 +10,7 @@ For the detection model:
 
 * It has fully converlutional structure
 
-* It detects person faces as well as vehicle liscense plates
+* It detects person faces as well as vehicle license plates
 
 * It is optimized by TRT for fast inference during runtime of the app.
 
@@ -18,13 +18,13 @@ For the redaction app:
 
 * It is developed using NVIDIA Deepstream SDK 2.0
 
-* It reads in one .mp4 file and outputs one .mp4 file with faces and liscense plates redacted.
+* It reads in one .mp4 file and outputs one .mp4 file with faces and license plates redacted.
 
 * It outputs the bbox locations of the redacted objects as kitti format for future reference.
 
 * It has fast processing speed (>70 fps on 1080P). 
 
-* It can be served as a video processing tool for data privacy protection purpose according to GDPR
+* It can be served as a video processing tool for data privacy protection purpose according to the [new EU GDPR guideline](https://www.eugdpr.org/).
 
 * It demos how to build practical iva applications using NVIDIA deepstream SDK. 
 
