@@ -50,7 +50,7 @@ Download and install DeepStream 2.0
 
 Once DeepStream SDK is installed, you have the ability to develop your own fast video processing applications.
 
-### the Redaction App ###
+### The Redaction App ###
 
 In this app, we decode mp4 file, detection faces and license plates using "nvinfer", referred as the pgie, draw color rectangles on the original video to cover the objects of interests for redaction purpose, encode back to mp4 file, and output bounding boxes of objects of interests to file in kitti format. nvinfer element attach some MetaData to the buffer. By attaching the probe function after nvinfer, one can extract meaningful information from this inference. Please refer the "osd_sink_pad_buffer_probe" function in the sample code. For details on the Metadata format, refer to the file "gstnvdsmeta.h"
 
