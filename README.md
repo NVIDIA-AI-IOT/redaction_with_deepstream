@@ -50,6 +50,10 @@ Download and install DeepStream 2.0
 
 Once DeepStream SDK is installed, you have the ability to develop your own fast video processing applications.
 
+### the Redaction App ###
+
+![alt text](pipeline/pipeline-playing.png "pipeline")
+
 ### Running the Redaction App ###
 
 1. Build app
@@ -57,5 +61,10 @@ Once DeepStream SDK is installed, you have the ability to develop your own fast 
 `make`
 
 2. run app
-
-`./deepstream-redaction-app <path-to-input-mp4-file> <path-to-output-mp4-file> <path-to-config-file>`
+```
+./deepstream-redaction-app -c <path-to-config-file> 
+						   -i <path-to-input-mp4-file> 
+						  [-o <path-to-output-mp4-file> 
+						   -k <path-to-output-kitti-folder>]
+```
+run `./deepstream-redaction-app --help` for detailed usage.
