@@ -61,10 +61,10 @@ Once DeepStream SDK is installed, you have the ability to develop your own fast 
 `make`
 
 2. run app
-```
+'''
 ./deepstream-redaction-app -c <path-to-config-file> 
 						   -i <path-to-input-mp4-file> 
 						  [-o <path-to-output-mp4-file> 
 						   -k <path-to-output-kitti-folder>]
-```
+'''
 run `./deepstream-redaction-app --help` for detailed usage.
