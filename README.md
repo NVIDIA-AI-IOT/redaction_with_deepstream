@@ -52,7 +52,14 @@ Once DeepStream SDK is installed, you have the ability to develop your own fast 
 
 ### the Redaction App ###
 
+In this app, we decode mp4 file, detection faces and license plates using "nvinfer", referred as the pgie, draw color rectangles on the original video to cover the objects of interests for redaction purpose, encode back to mp4 file, and output bounding boxes of objects of interests to file in kitti format. nvinfer element attach some MetaData to the buffer. By attaching the probe function after nvinfer, one can extract meaningful information from this inference. Please refer the "osd_sink_pad_buffer_probe" function in the sample code. For details on the Metadata format, refer to the file "gstnvdsmeta.h"
+
+The pipeline of the app is shown below:
+
 ![alt text](pipeline/pipeline-playing.png "pipeline")
+
+The app will ouput its pipeline to the folder `DOT_DIR` while running.
+One can generate the pipeline by `dot -Tpng DOT_DIR/<.dot file> > pipeline/pipeline.png`
 
 ### Running the Redaction App ###
 
@@ -69,4 +76,4 @@ Once DeepStream SDK is installed, you have the ability to develop your own fast 
 							   -k <path-to-output-kitti-folder>]
 	```
 
-run `./deepstream-redaction-app --help` for detailed usage.
+	run `./deepstream-redaction-app --help` for detailed usage.
