@@ -10,7 +10,7 @@
 gpu-id=0
 net-scale-factor=0.0039215697906911373
 model-file=../fd_lpd_model/fd_lpd.caffemodel
-#model-cache=../fd_lpd_model/fd_lpd.caffemodel_b1_fp32.cache
+model-cache=../fd_lpd_model/fd_lpd.caffemodel_b1_fp32.cache
 proto-file=../fd_lpd_model/fd_lpd.prototxt
 labelfile-path=../fd_lpd_model/labels.txt
 net-stride=16
