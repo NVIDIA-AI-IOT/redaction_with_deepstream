@@ -88,7 +88,7 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
           {
           	rect_params->border_width = 0;
           	rect_params->has_bg_color = 1;
-  			rect_params->bg_color.red = 1.0;
+  			rect_params->bg_color.red = 0.0;
   			rect_params->bg_color.green = 0.0;
   			rect_params->bg_color.blue = 0.0;
   			rect_params->bg_color.alpha = 1.0;
@@ -97,9 +97,9 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
           {
           	rect_params->border_width = 0;
           	rect_params->has_bg_color = 1;
-  			rect_params->bg_color.red = 0.0;
-  			rect_params->bg_color.green = 0.0;
-  			rect_params->bg_color.blue = 1.0;
+  			rect_params->bg_color.red = 0.92;
+  			rect_params->bg_color.green = 0.75;
+  			rect_params->bg_color.blue = 0.56;
   			rect_params->bg_color.alpha = 1.0;
           }
 
