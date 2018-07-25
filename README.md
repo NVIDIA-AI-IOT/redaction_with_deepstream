@@ -67,7 +67,13 @@ One can generate the pipeline by `dot -Tpng DOT_DIR/<.dot file> > pipeline/pipel
 
 	`make`
 
-2. run app
+2. Test run
+
+	There are sample videos in the folder `sample_videos`
+	One can do a quick test of the app by running
+	`./deepstream-redaction-app -c configs/pgie_config_fd_lpd.txt -i sample_videos/1.mp4`
+
+3. Run app
 
 	```
 	./deepstream-redaction-app -c <path-to-config-file> 
@@ -77,3 +83,4 @@ One can generate the pipeline by `dot -Tpng DOT_DIR/<.dot file> > pipeline/pipel
 	```
 
 	run `./deepstream-redaction-app --help` for detailed usage.
+
