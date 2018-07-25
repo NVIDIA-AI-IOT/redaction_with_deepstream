@@ -11,13 +11,11 @@
 
 #include <gst/gst.h>
 #include <glib.h>
+#include<stdio.h>
 
 #include "gstnvdsmeta.h"
 
 #define MAX_DISPLAY_LEN 64
-
-#define PGIE_CLASS_ID_VEHICLE 0
-#define PGIE_CLASS_ID_PERSON 2
 
 gint frame_number = 0;
 // gchar pgie_classes_str[4][32] = { "Vehicle", "TwoWheeler", "Person",
@@ -27,6 +25,8 @@ gchar pgie_classes_str[5][32] = { "license_plate", "make", "model","face","perso
 
 /* osd_sink_pad_buffer_probe  will extract metadata received on OSD sink pad
  * and update params for drawing rectangle, object information etc. */
+
+GstElement *pipeline, *video_full_processing_bin;
 
 static GstPadProbeReturn
 osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
@@ -41,10 +41,13 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
   NvDsFrameMeta *frame_meta = NULL;
   guint num_rects = 0, rect_index = 0, l_index = 0;
   NvDsObjectParams *obj_meta = NULL;
+  NvOSD_RectParams *rect_params = NULL;
   guint i = 0;
   NvOSD_TextParams *txt_params = NULL;
   guint vehicle_count = 0;
   guint person_count = 0;
+  FILE *bbox_params_dump_file = NULL;
+  gchar bbox_file[1024] = { 0 };
 
   if (!_nvdsmeta_quark)
     _nvdsmeta_quark = g_quark_from_static_string (NVDS_META_STRING);
@@ -63,57 +66,58 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
           return GST_PAD_PROBE_OK;
         }
 
-        /* We reset the num_strings here as we plan to iterate through the
-         *  the detected objects and form our own strings.
-         *  The pipeline generated strings shall be discarded.
-         */
-        frame_meta->num_strings = 0;
-
+        g_snprintf (bbox_file, sizeof (bbox_file) - 1, "%s/%06lu.txt",
+              "/home/shuo/kitti", frame_number);
+        bbox_params_dump_file = fopen (bbox_file, "w");
         num_rects = frame_meta->num_rects;
-
         /* This means we have num_rects in frame_meta->obj_params,
          * now lets iterate through them */
-
         for (rect_index = 0; rect_index < num_rects; rect_index++) {
           /* Now using above information we need to form a text that should
            * be displayed on top of the bounding box, so lets form it here. */
 
           obj_meta = (NvDsObjectParams *) & frame_meta->obj_params[rect_index];
-
+          rect_params = &(obj_meta->rect_params);
           txt_params = &(obj_meta->text_params);
           if (txt_params->display_text)
-            g_free (txt_params->display_text);
+          {
+          	g_free (txt_params->display_text);
+          }
+            
+          if (obj_meta->class_id == 0)
+          {
+          	rect_params->border_width = 0;
+          	rect_params->has_bg_color = 1;
+  			rect_params->bg_color.red = 1.0;
+  			rect_params->bg_color.green = 0.0;
+  			rect_params->bg_color.blue = 0.0;
+  			rect_params->bg_color.alpha = 1.0;
+          }
+          if (obj_meta->class_id == 3)
+          {
+          	rect_params->border_width = 0;
+          	rect_params->has_bg_color = 1;
+  			rect_params->bg_color.red = 0.0;
+  			rect_params->bg_color.green = 0.0;
+  			rect_params->bg_color.blue = 1.0;
+  			rect_params->bg_color.alpha = 1.0;
+          }
 
-          txt_params->display_text = g_malloc0 (MAX_DISPLAY_LEN);
-
-          g_snprintf (txt_params->display_text, MAX_DISPLAY_LEN, "%s ",
-              pgie_classes_str[obj_meta->class_id]);
-
-          if (obj_meta->class_id == PGIE_CLASS_ID_VEHICLE)
-            vehicle_count++;
-          if (obj_meta->class_id == PGIE_CLASS_ID_PERSON)
-            person_count++;
-
-          /* Now set the offsets where the string should appear */
-          txt_params->x_offset = obj_meta->rect_params.left;
-          txt_params->y_offset = obj_meta->rect_params.top - 25;
-
-          /* Font , font-color and font-size */
-          txt_params->font_params.font_name = "Arial";
-          txt_params->font_params.font_size = 10;
-          txt_params->font_params.font_color.red = 1.0;
-          txt_params->font_params.font_color.green = 1.0;
-          txt_params->font_params.font_color.blue = 1.0;
-          txt_params->font_params.font_color.alpha = 1.0;
-
-          /* Text background color */
-          txt_params->set_bg_clr = 1;
-          txt_params->text_bg_clr.red = 0.0;
-          txt_params->text_bg_clr.green = 0.0;
-          txt_params->text_bg_clr.blue = 0.0;
-          txt_params->text_bg_clr.alpha = 1.0;
-
-          frame_meta->num_strings++;
+          if (bbox_params_dump_file) {
+            int left = (int)(rect_params->left);
+            int top = (int)(rect_params->top);
+            int right = left + (int)(rect_params->width);
+            int bottom = top + (int)(rect_params->height);
+            int class_index = obj_meta->class_id;
+            char *text = pgie_classes_str[obj_meta->class_id];
+            fprintf (bbox_params_dump_file,
+                "%s 0.0 0 0.0 %d.00 %d.00 %d.00 %d.00 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n",
+                text, left, top, right, bottom);
+          }
+        }
+        if (bbox_params_dump_file) {
+          fclose (bbox_params_dump_file);
+          bbox_params_dump_file = NULL;
         }
       }
     }
@@ -153,21 +157,6 @@ bus_call (GstBus * bus, GstMessage * msg, gpointer data)
   return TRUE;
 }
 
-GstElement *pipeline, *video, *sinkbin;
-
-static void
-cb_new_pad (GstElement *element,GstPad *pad, gpointer data)
-{
-  gchar* name;
-  name = gst_pad_get_name (pad);
-  g_print ("A new pad %s was created\n", name);
-  GstPad* sinkpad;
-  GstElement* h264parser = (GstElement *) data;
-  sinkpad = gst_element_get_static_pad (h264parser, "sink");
-  gst_pad_link (pad, sinkpad);
-  gst_object_unref (sinkpad);
-  g_free (name);
-}
 
 static void
 cb_newpad (GstElement *decodebin, GstPad *pad, gpointer data)
@@ -176,7 +165,7 @@ cb_newpad (GstElement *decodebin, GstPad *pad, gpointer data)
   GstStructure *str;
   GstPad *videopad;
   /*only link once*/
-  videopad = gst_element_get_static_pad (video, "sink");
+  videopad = gst_element_get_static_pad (video_full_processing_bin, "sink");
   if (GST_PAD_IS_LINKED (videopad)) {
     g_object_unref (videopad);
     return;
@@ -200,21 +189,41 @@ int
 main (int argc, char *argv[])
 {
   GMainLoop *loop = NULL;
-  GstElement *source = NULL, *h264parser =
-      NULL, *demux = NULL, *pgie = NULL, *encoder = NULL, *mux = NULL, *videoconv = NULL,
-      *decoder = NULL, *sink = NULL, *nvvidconv = NULL, *nvvidconv1 = NULL, 
-      *nvosd = NULL, *filter1 = NULL, *filter2 = NULL, *filter3 = NULL;
+  GstElement *source = NULL, 
+  			*decoder = NULL,
+
+  			*queue_pgie = NULL, 
+  			*nvvidconv_pgie = NULL, 
+  			*filter_pgie = NULL, 
+  			*pgie = NULL,
+
+  			*queue_osd = NULL,
+  			*nvvidconv_osd = NULL,
+  			*filter_osd = NULL,
+  			*osd = NULL,
+
+  			*queue_sink = NULL,
+  			*nvvidconv_sink = NULL,
+  			*filter_sink = NULL,
+  			*videoconvert = NULL,
+  			*encoder = NULL,
+  			*muxer = NULL,
+  			*sink = NULL;
+
   GstBus *bus = NULL;
   guint bus_watch_id;
-  GstCaps *caps1 = NULL, *caps2 = NULL, *caps3 = NULL;
+  GstCaps *caps_filter_pgie = NULL, *caps_filter_osd = NULL, *caps_filter_sink = NULL;
   gulong osd_probe_id = 0;
   GstPad *osd_sink_pad = NULL, *videopad = NULL;
+  GstCapsFeatures *feature = NULL;feature = gst_caps_features_new ("memory:NVMM", NULL);
 
   /* Check input arguments */
-  // if (argc != 3) {
-  //   g_printerr ("Usage: %s <video filename> <pgie config filename>\n", argv[0]);
-  //   return -1;
-  // }
+  if (argc < 3) {
+    g_printerr ("Usage: %s <pgie config filename> <path-to-input-mp4-file> <path-to-output-mp4-file>\n", argv[0]);
+    g_printerr ("OR\n");
+    g_printerr ("%s <pgie config filename> <path-to-input-mp4-file> for on-screen display\n", argv[0]);
+    return -1;
+  }
 
   /* Standard GStreamer initialization */
   gst_init (&argc, &argv);
@@ -226,71 +235,62 @@ main (int argc, char *argv[])
 
   /* Source element for reading from the file */
   source = gst_element_factory_make ("filesrc", "file-source");
-  // source = gst_element_factory_make ("uridecodebin", "file-source");
+  g_object_set (G_OBJECT (source), "location", argv[2], NULL);
   decoder = gst_element_factory_make ("decodebin", "decoder");
   g_signal_connect (decoder, "pad-added", G_CALLBACK (cb_newpad), NULL);
-  gst_bin_add_many (GST_BIN (pipeline), source, decoder, NULL);
-  gst_element_link (source, decoder);
-
-
-  demux = gst_element_factory_make ("qtdemux", "demuxer");
-  /* Since the data format in the input file is elementary h264 stream,
-   * we need a h264parser */
-  h264parser = gst_element_factory_make ("h264parse", "h264-parser");
-
-  /* Use nvdec_h264 for hardware accelerated decode on GPU */
-  // decoder = gst_element_factory_make ("nvdec_h264", "nvh264-decoder");
-
+  
   /* Use nvinfer to run inferencing on decoder's output,
    * behaviour of inferencing is set through config file */
-  video = gst_bin_new ("video-process-bin");
+  video_full_processing_bin = gst_bin_new ("video-process-bin");
+
+  queue_pgie = gst_element_factory_make ("queue", "queue_pgie");
+  nvvidconv_pgie = gst_element_factory_make ("nvvidconv", "nvvidconv_pgie");
+  filter_pgie = gst_element_factory_make ("capsfilter", "filter_pgie");
+  caps_filter_pgie = gst_caps_new_simple ("video/x-raw", "format", G_TYPE_STRING, "NV12", NULL);
+  gst_caps_set_features (caps_filter_pgie, 0, feature);
+  g_object_set (G_OBJECT (filter_pgie), "caps", caps_filter_pgie, NULL);
+  gst_caps_unref (caps_filter_pgie);
   pgie = gst_element_factory_make ("nvinfer", "primary-nvinference-engine");
-  videopad = gst_element_get_static_pad (pgie, "sink");
-  /* Use convertor to convert from NV12 to RGBA as required by nvosd */
-  nvvidconv = gst_element_factory_make ("nvvidconv", "nvvideo-converter");
+  g_object_set (G_OBJECT (pgie),"config-file-path", argv[1], NULL);
+  videopad = gst_element_get_static_pad (queue_pgie, "sink");
 
-  /* Create OSD to draw on the converted RGBA buffer */
-  nvosd = gst_element_factory_make ("nvosd", "nv-onscreendisplay");
+  queue_osd = gst_element_factory_make ("queue", "queue_osd");
+  nvvidconv_osd = gst_element_factory_make ("nvvidconv", "nvvidconv_osd");
+  filter_osd = gst_element_factory_make ("capsfilter", "filter_osd");
+  caps_filter_osd = gst_caps_new_simple ("video/x-raw", "format", G_TYPE_STRING,"RGBA", NULL);
+  gst_caps_set_features (caps_filter_osd, 0, feature);
+  g_object_set (G_OBJECT (filter_osd), "caps", caps_filter_osd, NULL);
+  gst_caps_unref (caps_filter_osd);
+  osd = gst_element_factory_make ("nvosd", "nv-onscreendisplay");
 
-
-  nvvidconv1 = gst_element_factory_make ("nvvidconv", "nvvideo-converter1");
-
-  videoconv = gst_element_factory_make ("videoconvert", "video-converter");
-
+  if (argc == 4) {
+  queue_sink = gst_element_factory_make ("queue", "queue_sink");
+  nvvidconv_sink = gst_element_factory_make ("nvvidconv", "nvvidconv_sink");
+  filter_sink = gst_element_factory_make ("capsfilter", "filter_sink");
+  caps_filter_sink = gst_caps_new_simple ("video/x-raw", "format", G_TYPE_STRING, "RGBA", NULL);
+  // gst_caps_set_features (caps_filter_sink, 0, feature);
+  g_object_set (G_OBJECT (filter_sink), "caps", caps_filter_sink, NULL);
+  gst_caps_unref (caps_filter_sink);
+  videoconvert = gst_element_factory_make ("videoconvert", "videoconverter");
   encoder = gst_element_factory_make ("avenc_mpeg4", "mp4-encoder");
+  g_object_set (G_OBJECT (encoder), "bitrate", 2000000, NULL);
+  muxer = gst_element_factory_make ("qtmux", "muxer");
+  sink = gst_element_factory_make ("filesink", "nvvideo-renderer");
+  g_object_set (G_OBJECT (sink), "location", argv[3], NULL);
+  }
+  else
+  {
+  	sink = gst_element_factory_make ("nveglglessink", "nvvideo-renderer");
+  }
 
-  // g_object_set (G_OBJECT (encoder), "bitrate", 2000000, NULL);
-
-  mux = gst_element_factory_make ("qtmux", "muxer");
-  /* Finally render the osd output */
-  sink = gst_element_factory_make ("nveglglessink", "nvvideo-renderer");
-  // sink = gst_element_factory_make ("fakesink", "nvvideo-renderer");
-  // sink = gst_element_factory_make ("filesink", "nvvideo-renderer");
-  // g_object_set (G_OBJECT (sink), "location", "/home/shuo/out.mp4","sync", FALSE, "async", FALSE, NULL);
-
-  /* caps filter for nvvidconv to convert NV12 to RGBA as nvosd expects input
-   * in RGBA format */
-  filter1 = gst_element_factory_make ("capsfilter", "filter1");
-  filter2 = gst_element_factory_make ("capsfilter", "filter2");
-  filter3 = gst_element_factory_make ("capsfilter", "filter3");
-  if (!pipeline || !source || !h264parser || !decoder || !pgie
-      || !filter1 || !nvvidconv || !filter2 || !nvosd || !sink) {
+  if (!pipeline || !source || !decoder || !video_full_processing_bin
+      || !queue_pgie || !nvvidconv_pgie || !filter_pgie || !pgie
+      || !queue_osd || !nvvidconv_osd || !filter_osd || !osd
+      || !sink) 
+  {
     g_printerr ("One element could not be created. Exiting.\n");
     return -1;
   }
-
-  /* we set the input filename to the source element */
-  // g_object_set (G_OBJECT (source), "location", argv[1], NULL);
-  g_object_set (G_OBJECT (source), "location", "sample_videos/1.mp4", NULL);
-  // g_object_set (G_OBJECT (source), "location", "/home/shuo/DeepStream_Release/samples/streams/sample_720p.mp4", NULL);
-
-  /* Set all the necessary properties of the nvinfer element,
-   * the necessary ones are : */
-  // g_object_set (G_OBJECT (pgie),"config-file-path", argv[2], NULL);
-  g_object_set (G_OBJECT (pgie),"config-file-path", "configs/pgie_config_fd_lpd.txt", NULL);
-
-  /* we set the osd properties here */
-  g_object_set (G_OBJECT (nvosd), "font-size", 15, NULL);
 
   /* we add a message handler */
   bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
@@ -299,43 +299,47 @@ main (int argc, char *argv[])
 
   /* Set up the pipeline */
   /* we add all elements into the pipeline */
-  // gst_bin_add_many (GST_BIN (video), pgie, filter1, nvvidconv, filter2, nvosd, nvvidconv1, filter3, videoconv, encoder, mux, sink, NULL);
-  gst_bin_add_many (GST_BIN (video), pgie, filter1, nvvidconv, filter2, nvosd, sink, NULL);
+  gst_bin_add_many (GST_BIN (pipeline), source, decoder, NULL);
+  gst_element_link (source, decoder);
 
-  caps1 = gst_caps_from_string ("video/x-raw(memory:NVMM), format=NV12");
-  g_object_set (G_OBJECT (filter1), "caps", caps1, NULL);
-  gst_caps_unref (caps1);
-  caps2 = gst_caps_from_string ("video/x-raw(memory:NVMM), format=RGBA");
-  g_object_set (G_OBJECT (filter2), "caps", caps2, NULL);
-  gst_caps_unref (caps2);
-  caps3 = gst_caps_new_simple ("video/x-raw", "format", G_TYPE_STRING, "RGBA", NULL);
-  g_object_set (G_OBJECT (filter3), "caps", caps3, NULL);
-  gst_caps_unref (caps3);
+  if (argc == 4) 
+  {
+  	gst_bin_add_many (GST_BIN (video_full_processing_bin), 
+  	queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
+  	nvvidconv_osd, filter_osd, osd, 
+  	queue_sink, nvvidconv_sink, filter_sink, videoconvert, encoder, muxer, sink, NULL);
 
   /* we link the elements together */
-  /* file-source -> h264-parser -> nvh264-decoder ->
-   * nvinfer -> filter1 -> nvvidconv -> filter2 -> nvosd -> video-renderer */
-  // gst_element_link_many (pgie, filter1, nvvidconv, filter2, nvosd, nvvidconv1, filter3, videoconv, encoder, mux, sink, NULL);
-  gst_element_link_many (pgie, filter1, nvvidconv, filter2, nvosd, sink, NULL);
+    gst_element_link_many (queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
+  	nvvidconv_osd, filter_osd, osd, 
+  	queue_sink, nvvidconv_sink, filter_sink, videoconvert, encoder, muxer, sink, NULL);
+  }
+  else
+  {
+  	gst_bin_add_many (GST_BIN (video_full_processing_bin), 
+  	queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
+  	nvvidconv_osd, filter_osd, osd, 
+  	sink, NULL);
 
-  gst_element_add_pad (video, gst_ghost_pad_new ("sink", videopad));
+  /* we link the elements together */
+    gst_element_link_many (queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
+  	nvvidconv_osd, filter_osd, osd, 
+  	sink, NULL);
+  }
+
+  gst_element_add_pad (video_full_processing_bin, gst_ghost_pad_new ("sink", videopad));
   gst_object_unref (videopad);
-  gst_bin_add (GST_BIN (pipeline), video);
-  // gst_bin_add_many (GST_BIN (pipeline), source, demux,h264parser, NULL);
-  // gst_element_link_pads (source, "src", demux, "sink");
-  // gst_element_link_pads (demux, "src", h264parser, "sink");
-  // g_signal_connect (demux, "pad-added", G_CALLBACK (cb_new_pad), NULL);
-
-
+  gst_bin_add (GST_BIN (pipeline), video_full_processing_bin);
+  
   /* Lets add probe to get informed of the meta data generated, we add probe to
    * the sink pad of the osd element, since by that time, the buffer would have
    * had got all the metadata. */
-  // osd_sink_pad = gst_element_get_static_pad (nvosd, "sink");
-  // if (!osd_sink_pad)
-  //   g_print ("Unable to get sink pad\n");
-  // else
-  //   osd_probe_id = gst_pad_add_probe (osd_sink_pad, GST_PAD_PROBE_TYPE_BUFFER,
-  //       osd_sink_pad_buffer_probe, NULL, NULL);
+  osd_sink_pad = gst_element_get_static_pad (osd, "sink");
+  if (!osd_sink_pad)
+    g_print ("Unable to get sink pad\n");
+  else
+    osd_probe_id = gst_pad_add_probe (osd_sink_pad, GST_PAD_PROBE_TYPE_BUFFER,
+        osd_sink_pad_buffer_probe, NULL, NULL);
 
   /* Set the pipeline to "playing" state */
   g_print ("Now playing: %s\n", argv[1]);
