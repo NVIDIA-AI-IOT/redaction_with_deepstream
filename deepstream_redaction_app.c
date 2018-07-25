@@ -226,13 +226,13 @@ main (int argc, char *argv[])
   GError *err = NULL;
   GOptionEntry entries[] = {
     { "pgie_config", 'c', 0, G_OPTION_ARG_STRING, &pgie_config,
-    "configuration file for the nvinfer detector (primary gie)", NULL },
+    "(required) configuration file for the nvinfer detector (primary gie)", NULL },
     { "input_mp4", 'i', 0, G_OPTION_ARG_STRING, &input_mp4,
-    "path to input mp4 file", NULL },
+    "(required) path to input mp4 file", NULL },
     { "output_mp4", 'o', 0, G_OPTION_ARG_STRING, &output_mp4,
-    "path to output mp4 file. If this is unset then on-screen display will be used", NULL },
+    "(optional) path to output mp4 file. If this is unset then on-screen display will be used", NULL },
     { "output_kitti", 'k', 0, G_OPTION_ARG_STRING, &output_kitti,
-    "path to the folder for containing output kitti files. If this is unset or the path does not exist then app won't output kitti files", NULL },
+    "(optional) path to the folder for containing output kitti files. If this is unset or the path does not exist then app won't output kitti files", NULL },
     { NULL },
   };
   ctx = g_option_context_new ("\n\n  'Fast Video Redaction App using NVIDIA Deepstream'\n  contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
