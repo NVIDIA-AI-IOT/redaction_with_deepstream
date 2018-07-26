@@ -2,8 +2,8 @@ name: "FD_LPD_Redactor"
 input: "data"
 input_dim: 1
 input_dim: 3
-input_dim: 540
-input_dim: 960
+input_dim: 1080
+input_dim: 1920
 
 # **********************************************************
 # LPD Model resnet10
