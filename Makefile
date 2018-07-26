@@ -19,7 +19,7 @@ PKGS:= gstreamer-1.0
 
 OBJS:= $(SRCS:.c=.o)
 
-CFLAGS:= -Iincludes
+CFLAGS:= -I../../includes
 
 CFLAGS+= `pkg-config --cflags $(PKGS)`
 
