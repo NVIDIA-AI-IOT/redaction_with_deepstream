@@ -1,4 +1,0 @@
-face
-license_plate
-make
-model

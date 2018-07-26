@@ -61,6 +61,8 @@ The pipeline of the app is shown below:
 The app will ouput its pipeline to the folder `DOT_DIR` while running.
 One can generate the pipeline by `dot -Tpng DOT_DIR/<.dot file> > pipeline/pipeline.png`
 
+A sample output video can be found in folder `sample_videos`.
+
 ### Running the Redaction App ###
 
 1. `cd <path-to-deepstream-sdk>/sources/apps` & download this repo & `cd redaction_from_deepstream`
@@ -70,13 +72,7 @@ One can generate the pipeline by `dot -Tpng DOT_DIR/<.dot file> > pipeline/pipel
 
 	`make`
 
-3. Test run
-
-	There are sample videos in the folder `sample_videos`
-	One can do a quick test of the app by running
-	`./deepstream-redaction-app -c configs/pgie_config_fd_lpd.txt -i sample_videos/1.mp4`
-
-4. Run app
+3. Run app
 
 	```
 	./deepstream-redaction-app -c <path-to-config-file> 

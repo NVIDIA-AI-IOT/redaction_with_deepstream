@@ -63,10 +63,10 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
         frame_meta = (NvDsFrameMeta *) nvdsmeta->meta_data;
         if (frame_meta == NULL) {
           g_print ("NvDS Meta contained NULL meta \n");
+          frame_number++;
           return GST_PAD_PROBE_OK;
         }
-        if (output_kitti)
-        {
+        if (output_kitti) {
           g_snprintf (bbox_file, sizeof (bbox_file) - 1, "%s/%06d.txt",
               output_kitti, frame_number);
           bbox_params_dump_file = fopen (bbox_file, "w");
@@ -81,29 +81,26 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
           obj_meta = (NvDsObjectParams *) & frame_meta->obj_params[rect_index];
           rect_params = &(obj_meta->rect_params);
           txt_params = &(obj_meta->text_params);
-          if (txt_params->display_text)
-          {
-          	g_free (txt_params->display_text);
+          if (txt_params->display_text) {
+            g_free (txt_params->display_text);
           }
           /* Draw black patch to cover license plates (class_id = 0) */
-          if (obj_meta->class_id == 1)
-          {
-          	rect_params->border_width = 0;
-          	rect_params->has_bg_color = 1;
-      			rect_params->bg_color.red = 0.0;
-      			rect_params->bg_color.green = 0.0;
-      			rect_params->bg_color.blue = 0.0;
-      			rect_params->bg_color.alpha = 1.0;
+          if (obj_meta->class_id == 1) {
+            rect_params->border_width = 0;
+            rect_params->has_bg_color = 1;
+            rect_params->bg_color.red = 0.0;
+            rect_params->bg_color.green = 0.0;
+            rect_params->bg_color.blue = 0.0;
+            rect_params->bg_color.alpha = 1.0;
           }
           /* Draw skin-color patch to cover faces (class_id = 0) */
-          if (obj_meta->class_id == 0)
-          {
-          	rect_params->border_width = 0;
-          	rect_params->has_bg_color = 1;
-      			rect_params->bg_color.red = 0.92;
-      			rect_params->bg_color.green = 0.75;
-      			rect_params->bg_color.blue = 0.56;
-      			rect_params->bg_color.alpha = 1.0;
+          if (obj_meta->class_id == 0) {
+            rect_params->border_width = 0;
+            rect_params->has_bg_color = 1;
+            rect_params->bg_color.red = 0.92;
+            rect_params->bg_color.green = 0.75;
+            rect_params->bg_color.blue = 0.56;
+            rect_params->bg_color.alpha = 1.0;
           }
           /* Ouput bbox location as kitti file */
           if (bbox_params_dump_file) {
@@ -140,7 +137,7 @@ bus_call (GstBus * bus, GstMessage * msg, gpointer data)
       g_print ("End of stream\n");
       g_main_loop_quit (loop);
       break;
-    case GST_MESSAGE_ERROR:{
+    case GST_MESSAGE_ERROR: {
       gchar *debug;
       GError *error;
       gst_message_parse_error (msg, &error, &debug);
@@ -152,16 +149,14 @@ bus_call (GstBus * bus, GstMessage * msg, gpointer data)
       g_main_loop_quit (loop);
       break;
     }
-    case GST_MESSAGE_STATE_CHANGED:{
+    case GST_MESSAGE_STATE_CHANGED: {
       GstState oldstate, newstate;
       gst_message_parse_state_changed (msg, &oldstate, &newstate, NULL);
       if (GST_ELEMENT (GST_MESSAGE_SRC (msg)) == pipeline) {
         switch (newstate) {
           case GST_STATE_PLAYING:
-          {
             g_print ("Pipeline running\n");
             GST_DEBUG_BIN_TO_DOT_FILE_WITH_TS (GST_BIN (pipeline), GST_DEBUG_GRAPH_SHOW_ALL, "ds-app-playing");
-          }
             break;
           case GST_STATE_PAUSED:
             if (oldstate == GST_STATE_PLAYING) {
@@ -193,7 +188,7 @@ bus_call (GstBus * bus, GstMessage * msg, gpointer data)
  * The connection is dynamic. */
 static void
 cb_newpad (GstElement *decodebin, GstPad *pad, gpointer data)
-  {
+{
   GstCaps *caps;
   GstStructure *str;
   GstPad *videopad;
@@ -206,7 +201,7 @@ cb_newpad (GstElement *decodebin, GstPad *pad, gpointer data)
   /* check media type */
   caps = gst_pad_query_caps (pad, NULL);
   str = gst_caps_get_structure (caps, 0);
-  if (!g_strrstr (gst_structure_get_name (str), "video")){
+  if (!g_strrstr (gst_structure_get_name (str), "video")) {
     gst_caps_unref (caps);
     gst_object_unref (videopad);
     return;
@@ -255,27 +250,11 @@ main (int argc, char *argv[])
 
   /* initialize our gstreamer components for the app */
   GMainLoop *loop = NULL;
-  GstElement *source = NULL, 
-  			*decoder = NULL,
-
-  			*queue_pgie = NULL, 
-  			*nvvidconv_pgie = NULL, 
-  			*filter_pgie = NULL, 
-  			*pgie = NULL,
-
-  			*queue_osd = NULL,
-  			*nvvidconv_osd = NULL,
-  			*filter_osd = NULL,
-  			*osd = NULL,
-
-  			*queue_sink = NULL,
-  			*nvvidconv_sink = NULL,
-  			*filter_sink = NULL,
-  			*videoconvert = NULL,
-  			*encoder = NULL,
-  			*muxer = NULL,
-  			*sink = NULL;
-
+  GstElement *source = NULL, *decoder = NULL, 
+      *queue_pgie = NULL, *nvvidconv_pgie = NULL, *filter_pgie = NULL, *pgie = NULL,
+      *queue_osd = NULL, *nvvidconv_osd = NULL, *filter_osd = NULL, *osd = NULL,
+      *queue_sink = NULL, *nvvidconv_sink = NULL, *filter_sink = NULL,
+      *videoconvert = NULL, *encoder = NULL, *muxer = NULL, *sink = NULL;
   GstBus *bus = NULL;
   guint bus_watch_id;
   GstCaps *caps_filter_pgie = NULL, *caps_filter_osd = NULL, *caps_filter_sink = NULL;
@@ -319,35 +298,34 @@ main (int argc, char *argv[])
   g_object_set (G_OBJECT (filter_osd), "caps", caps_filter_osd, NULL);
   gst_caps_unref (caps_filter_osd);
   osd = gst_element_factory_make ("nvosd", "nv-onscreendisplay");
+  // g_object_set (G_OBJECT (osd), "gpu-id", 0, NULL);
 
   /* Create components for the output */
-  /* If output file is set, then create components for encoding and exporting to mp4 file */
+  
   if (output_mp4) {
-  queue_sink = gst_element_factory_make ("queue", "queue_sink");
-  nvvidconv_sink = gst_element_factory_make ("nvvidconv", "nvvidconv_sink");
-  filter_sink = gst_element_factory_make ("capsfilter", "filter_sink");
-  caps_filter_sink = gst_caps_from_string ("video/x-raw, format=RGBA");
-  g_object_set (G_OBJECT (filter_sink), "caps", caps_filter_sink, NULL);
-  gst_caps_unref (caps_filter_sink);
-  videoconvert = gst_element_factory_make ("videoconvert", "videoconverter");
-  encoder = gst_element_factory_make ("avenc_mpeg4", "mp4-encoder");
-  g_object_set (G_OBJECT (encoder), "bitrate", 2000000, NULL);
-  muxer = gst_element_factory_make ("qtmux", "muxer");
-  sink = gst_element_factory_make ("filesink", "nvvideo-renderer");
-  g_object_set (G_OBJECT (sink), "location", output_mp4, NULL);
-  }
-  /* If output file is not set, use on-screen display as output */
-  else
-  {
-  	sink = gst_element_factory_make ("nveglglessink", "nvvideo-renderer");
+    /* If output file is set, then create components for encoding and exporting to mp4 file */
+    queue_sink = gst_element_factory_make ("queue", "queue_sink");
+    nvvidconv_sink = gst_element_factory_make ("nvvidconv", "nvvidconv_sink");
+    filter_sink = gst_element_factory_make ("capsfilter", "filter_sink");
+    caps_filter_sink = gst_caps_from_string ("video/x-raw, format=RGBA");
+    g_object_set (G_OBJECT (filter_sink), "caps", caps_filter_sink, NULL);
+    gst_caps_unref (caps_filter_sink);
+    videoconvert = gst_element_factory_make ("videoconvert", "videoconverter");
+    encoder = gst_element_factory_make ("avenc_mpeg4", "mp4-encoder");
+    g_object_set (G_OBJECT (encoder), "bitrate", 2000000, NULL);
+    muxer = gst_element_factory_make ("qtmux", "muxer");
+    sink = gst_element_factory_make ("filesink", "nvvideo-renderer");
+    g_object_set (G_OBJECT (sink), "location", output_mp4, NULL);
+  } else {
+    /* If output file is not set, use on-screen display as output */
+    sink = gst_element_factory_make ("nveglglessink", "nvvideo-renderer");
   }
 
   /* Check all components */
   if (!pipeline || !source || !decoder || !video_full_processing_bin
       || !queue_pgie || !nvvidconv_pgie || !filter_pgie || !pgie
       || !queue_osd || !nvvidconv_osd || !filter_osd || !osd
-      || !sink) 
-  {
+      || !sink) {
     g_printerr ("One element could not be created. Exiting.\n");
     return -1;
   }
@@ -363,31 +341,26 @@ main (int argc, char *argv[])
   gst_element_link (source, decoder);
 
   /* Set up the video_full_processing_bin */
-  if (output_mp4) 
-  {
+  if (output_mp4) {
     /* add all the elements to the bin */
-  	gst_bin_add_many (GST_BIN (video_full_processing_bin), 
-  	queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
-  	nvvidconv_osd, filter_osd, osd, 
-  	queue_sink, nvvidconv_sink, filter_sink, videoconvert, encoder, muxer, sink, NULL);
-
+    gst_bin_add_many (GST_BIN (video_full_processing_bin), 
+    queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
+    nvvidconv_osd, filter_osd, osd, 
+    queue_sink, nvvidconv_sink, filter_sink, videoconvert, encoder, muxer, sink, NULL);
     /* link the elements together */
     gst_element_link_many (queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
-  	nvvidconv_osd, filter_osd, osd, 
-  	queue_sink, nvvidconv_sink, filter_sink, videoconvert, encoder, muxer, sink, NULL);
-  }
-  else
-  {
+    nvvidconv_osd, filter_osd, osd, 
+    queue_sink, nvvidconv_sink, filter_sink, videoconvert, encoder, muxer, sink, NULL);
+  } else {
     /* add all the elements to the bin */
-  	gst_bin_add_many (GST_BIN (video_full_processing_bin), 
-  	queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
-  	nvvidconv_osd, filter_osd, osd, 
-  	sink, NULL);
-
+    gst_bin_add_many (GST_BIN (video_full_processing_bin), 
+    queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
+    nvvidconv_osd, filter_osd, osd, 
+    sink, NULL);
     /* link the elements together */
     gst_element_link_many (queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
-  	nvvidconv_osd, filter_osd, osd, 
-  	sink, NULL);
+    nvvidconv_osd, filter_osd, osd, 
+    sink, NULL);
   }
 
   /* add the video_full_processing_bin into the pipeline */
