@@ -20,7 +20,7 @@
  * `pgie_config`,`input_mp4`,`output_mp4`,`output_kitti` are configurable file paths parsed through command line. */
 GstElement *pipeline, *video_full_processing_bin;
 gint frame_number = 0;
-gchar pgie_classes_str[5][32] = {"license_plate","make","model","face","person"};
+gchar pgie_classes_str[4][32] = {"face","license_plate","make","model"};
 gchar *pgie_config = NULL;
 gchar *input_mp4 = NULL;
 gchar *output_mp4 = NULL;
@@ -86,7 +86,7 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
           	g_free (txt_params->display_text);
           }
           /* Draw black patch to cover license plates (class_id = 0) */
-          if (obj_meta->class_id == 0)
+          if (obj_meta->class_id == 1)
           {
           	rect_params->border_width = 0;
           	rect_params->has_bg_color = 1;
@@ -96,7 +96,7 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
       			rect_params->bg_color.alpha = 1.0;
           }
           /* Draw skin-color patch to cover faces (class_id = 0) */
-          if (obj_meta->class_id == 3)
+          if (obj_meta->class_id == 0)
           {
           	rect_params->border_width = 0;
           	rect_params->has_bg_color = 1;
