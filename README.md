@@ -63,17 +63,20 @@ One can generate the pipeline by `dot -Tpng DOT_DIR/<.dot file> > pipeline/pipel
 
 ### Running the Redaction App ###
 
-1. Build app
+1. `cd <path-to-deepstream-sdk>/sources/apps` & download this repo & `cd redaction_from_deepstream`
+
+
+2. Build app
 
 	`make`
 
-2. Test run
+3. Test run
 
 	There are sample videos in the folder `sample_videos`
 	One can do a quick test of the app by running
 	`./deepstream-redaction-app -c configs/pgie_config_fd_lpd.txt -i sample_videos/1.mp4`
 
-3. Run app
+4. Run app
 
 	```
 	./deepstream-redaction-app -c <path-to-config-file> 
