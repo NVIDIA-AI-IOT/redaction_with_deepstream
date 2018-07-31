@@ -1,6 +1,9 @@
 # An example of using DeepStream SDK for redaction #
 
-The example shows how to use DeepStream 2.0 for redacting faces and license plates in video streams. The example uses ResNet-10 to detect faces and LPs in the scene on a frame by frame basis. The detected faces and LP are then filled, image composited, and  resulting frames encoded to  an MP4 file. The example demonstrates the use of the SDK's  following plugins – nvcuvidh264dec, nvvidconv, nvinfer and nvosd.
+The example shows how to use DeepStream 2.0 for redacting faces and license plates in video streams. 
+
+The example uses ResNet-10 to detect faces and LPs in the scene on a frame by frame basis. The detected faces and LP are then filled, image composited, and  resulting frames encoded to  an MP4 file. The example demonstrates the use of the SDK's  following plugins – nvcuvidh264dec, nvvidconv, nvinfer and nvosd.
+
 Note that the networks in the examples are trained with limited datasets and are not guaranteed for any accuracy. They are purely offered as an example to demonstrate the use of plugins in the DeepStream SDK 2.0
 
 ---
