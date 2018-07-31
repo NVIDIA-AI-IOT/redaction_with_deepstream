@@ -1,32 +1,10 @@
-# Fast Video Redaction Using NVIDIA Deepstream #
+# An example of using DeepStream SDK for redaction #
 
-This repo contains: 
+The example shows how to use DeepStream 2.0 for redacting faces and license plates in video streams. The example uses ResNet-10 to detect faces and LPs in the scene on a frame by frame basis. The detected faces and LP are then filled, image composited, and  resulting frames encoded to  an MP4 file. The example demonstrates the use of the SDK's  following plugins – nvcuvidh264dec, nvvidconv, nvinfer and nvosd.
+Note that the networks in the examples are trained with limited datasets and are not guaranteed for any accuracy. They are purely offered as an example to demonstrate the use of plugins in the DeepStream SDK 2.0
 
-* An NVIDIA developed model for face and liscence plate detection.
+---
 
-* Source codes for a fast video redaction app.
-
-For the detection model:
-
-* It has fully converlutional structure
-
-* It detects person faces as well as vehicle license plates
-
-* It is optimized by TRT for fast inference during runtime of the app.
-
-For the redaction app:
-
-* It is developed using NVIDIA Deepstream SDK 2.0
-
-* It reads in one .mp4 file and outputs one .mp4 file with faces and license plates redacted.
-
-* It outputs the bbox locations of the redacted objects as kitti format for future reference.
-
-* It has fast processing speed (>70 fps on 1080P). 
-
-* It can be served as a video processing tool for data privacy protection purpose according to the [new EU GDPR guideline](https://www.eugdpr.org/).
-
-* It demos how to build practical iva applications using NVIDIA deepstream SDK. 
 
 ### Pre-requisites: ###
 
