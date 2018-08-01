@@ -37,6 +37,20 @@ gchar *input_mp4 = NULL;
 gchar *output_mp4 = NULL;
 gchar *output_kitti = NULL;
 
+/* initialize our gstreamer components for the app */
+
+GMainLoop *loop = NULL;
+GstElement *source = NULL, *decoder = NULL, 
+    *queue_pgie = NULL, *nvvidconv_pgie = NULL, *filter_pgie = NULL, *pgie = NULL,
+    *queue_osd = NULL, *nvvidconv_osd = NULL, *filter_osd = NULL, *osd = NULL,
+    *queue_sink = NULL, *nvvidconv_sink = NULL, *filter_sink = NULL,
+    *videoconvert = NULL, *encoder = NULL, *muxer = NULL, *sink = NULL;
+GstBus *bus = NULL;
+guint bus_watch_id;
+GstCaps *caps_filter_pgie = NULL, *caps_filter_osd = NULL, *caps_filter_sink = NULL;
+gulong osd_probe_id = 0;
+GstPad *osd_sink_pad = NULL, *videopad = NULL;
+
 /* osd_sink_pad_buffer_probe function will extract metadata received on OSD sink pad
  * and then update params for drawing rectangle and write bbox to kitti file. */
 static GstPadProbeReturn
@@ -87,15 +101,15 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
         /* This means we have num_rects in frame_meta->obj_params,
          * now lets iterate through them */
         for (rect_index = 0; rect_index < num_rects; rect_index++) {
-          /* Now using above information we need to form a color path that should
-           * be displayed on the original video to cover object of intresets for redaction purpose */
+          /* Now using above information we need to form a color patch that should
+           * be displayed on the original video to cover object of interests for redaction purpose */
           obj_meta = (NvDsObjectParams *) & frame_meta->obj_params[rect_index];
           rect_params = &(obj_meta->rect_params);
           txt_params = &(obj_meta->text_params);
           if (txt_params->display_text) {
             g_free (txt_params->display_text);
           }
-          /* Draw black patch to cover license plates (class_id = 0) */
+          /* Draw black patch to cover license plates (class_id = 1) */
           if (obj_meta->class_id == 1) {
             rect_params->border_width = 0;
             rect_params->has_bg_color = 1;
@@ -238,10 +252,12 @@ main (int argc, char *argv[])
     { "output_mp4", 'o', 0, G_OPTION_ARG_STRING, &output_mp4,
     "(optional) path to output mp4 file. If this is unset then on-screen display will be used", NULL },
     { "output_kitti", 'k', 0, G_OPTION_ARG_STRING, &output_kitti,
-    "(optional) path to the folder for containing output kitti files. If this is unset or the path does not exist then app won't output kitti files", NULL },
+    "(optional) path to the folder for containing output kitti files. If this is unset or \
+the path does not exist then app won't output kitti files", NULL },
     { NULL },
   };
-  ctx = g_option_context_new ("\n\n  'Fast Video Redaction App using NVIDIA Deepstream'\n  contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
+  ctx = g_option_context_new ("\n\n  'Fast Video Redaction App using NVIDIA Deepstream'\n  \
+contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
   g_option_context_add_main_entries (ctx, entries, NULL);
   g_option_context_add_group (ctx, gst_init_get_option_group ());
   if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
@@ -258,19 +274,6 @@ main (int argc, char *argv[])
     g_printerr ("run: %s --help for usage instruction\n", argv[0]);
     return -1;
   }
-
-  /* initialize our gstreamer components for the app */
-  GMainLoop *loop = NULL;
-  GstElement *source = NULL, *decoder = NULL, 
-      *queue_pgie = NULL, *nvvidconv_pgie = NULL, *filter_pgie = NULL, *pgie = NULL,
-      *queue_osd = NULL, *nvvidconv_osd = NULL, *filter_osd = NULL, *osd = NULL,
-      *queue_sink = NULL, *nvvidconv_sink = NULL, *filter_sink = NULL,
-      *videoconvert = NULL, *encoder = NULL, *muxer = NULL, *sink = NULL;
-  GstBus *bus = NULL;
-  guint bus_watch_id;
-  GstCaps *caps_filter_pgie = NULL, *caps_filter_osd = NULL, *caps_filter_sink = NULL;
-  gulong osd_probe_id = 0;
-  GstPad *osd_sink_pad = NULL, *videopad = NULL;
 
   /* Create gstreamer loop */
   loop = g_main_loop_new (NULL, FALSE);
@@ -352,26 +355,26 @@ main (int argc, char *argv[])
   gst_element_link (source, decoder);
 
   /* Set up the video_full_processing_bin */
+  /* add all the elements to the bin */
+  gst_bin_add_many (GST_BIN (video_full_processing_bin), 
+  queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
+  nvvidconv_osd, filter_osd, osd, NULL);
+  /* link the elements together */
+  gst_element_link_many (queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
+  nvvidconv_osd, filter_osd, osd, NULL);
+
   if (output_mp4) {
     /* add all the elements to the bin */
     gst_bin_add_many (GST_BIN (video_full_processing_bin), 
-    queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
-    nvvidconv_osd, filter_osd, osd, 
     queue_sink, nvvidconv_sink, filter_sink, videoconvert, encoder, muxer, sink, NULL);
     /* link the elements together */
-    gst_element_link_many (queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
-    nvvidconv_osd, filter_osd, osd, 
-    queue_sink, nvvidconv_sink, filter_sink, videoconvert, encoder, muxer, sink, NULL);
+    gst_element_link_many (osd, queue_sink, nvvidconv_sink, filter_sink, videoconvert, encoder, muxer, sink, NULL);
   } else {
     /* add all the elements to the bin */
-    gst_bin_add_many (GST_BIN (video_full_processing_bin), 
-    queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
-    nvvidconv_osd, filter_osd, osd, 
+    gst_bin_add_many (GST_BIN (video_full_processing_bin),  
     sink, NULL);
     /* link the elements together */
-    gst_element_link_many (queue_pgie, nvvidconv_pgie, filter_pgie, pgie,
-    nvvidconv_osd, filter_osd, osd, 
-    sink, NULL);
+    gst_element_link (osd, sink);
   }
 
   /* add the video_full_processing_bin into the pipeline */

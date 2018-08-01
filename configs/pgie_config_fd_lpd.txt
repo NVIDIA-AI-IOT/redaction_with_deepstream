@@ -31,7 +31,7 @@ batch-size=1
 network-mode=0
 
 num-classes=4
-#ONLY INTERESTED IN CLASS 0 AND CLASS 3 ( LP and Faces )
+#ONLY INTERESTED IN CLASS 0 AND CLASS 1 ( Faces and LP )
 class-thresholds=0.2;0.2;1.2;1.2
 class-eps=0.2;0.1;0.2;0.2
 class-group-thresholds=1;1;1;1
