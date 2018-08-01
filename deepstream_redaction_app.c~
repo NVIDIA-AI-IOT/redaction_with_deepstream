@@ -42,10 +42,9 @@ gchar *output_kitti = NULL;
 
 GMainLoop *loop = NULL;
 GstElement *source = NULL, *decoder = NULL,
-    *queue_pgie = NULL, *pgie = NULL, *queue_osd = NULL, *nvvidconv_osd =
-    NULL, *filter_osd = NULL, *osd = NULL, *queue_sink = NULL, *nvvidconv_sink =
-    NULL, *filter_sink = NULL, *videoconvert = NULL, *encoder = NULL, *muxer =
-    NULL, *sink = NULL;
+    *queue_pgie = NULL, *pgie =NULL, *queue_osd = NULL, *nvvidconv_osd = NULL, *filter_osd = NULL, *osd =
+    NULL, *queue_sink = NULL, *nvvidconv_sink = NULL, *filter_sink =
+    NULL, *videoconvert = NULL, *encoder = NULL, *muxer = NULL, *sink = NULL;
 GstBus *bus = NULL;
 guint bus_watch_id;
 GstCaps *caps_filter_osd = NULL, *caps_filter_sink = NULL;
@@ -248,17 +247,17 @@ main (int argc, char *argv[])
   GError *err = NULL;
   GOptionEntry entries[] = {
     {"pgie_config", 'c', 0, G_OPTION_ARG_STRING, &pgie_config,
-          "(required) configuration file for the nvinfer detector (primary gie)",
-        NULL},
+        "(required) configuration file for the nvinfer detector (primary gie)",
+          NULL},
     {"input_mp4", 'i', 0, G_OPTION_ARG_STRING, &input_mp4,
         "(required) path to input mp4 file", NULL},
     {"output_mp4", 'o', 0, G_OPTION_ARG_STRING, &output_mp4,
-          "(optional) path to output mp4 file. If this is unset then on-screen display will be used",
-        NULL},
+        "(optional) path to output mp4 file. If this is unset then on-screen display will be used",
+          NULL},
     {"output_kitti", 'k', 0, G_OPTION_ARG_STRING, &output_kitti,
-          "(optional) path to the folder for containing output kitti files. If this is unset or \
+        "(optional) path to the folder for containing output kitti files. If this is unset or \
 the path does not exist then app won't output kitti files",
-        NULL},
+          NULL},
     {NULL},
   };
   ctx =
@@ -340,8 +339,7 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
 
   /* Check all components */
   if (!pipeline || !source || !decoder || !video_full_processing_bin
-      || !queue_pgie || !pgie || !queue_osd || !nvvidconv_osd || !filter_osd
-      || !osd || !sink) {
+      || !queue_pgie || !pgie || !queue_osd || !nvvidconv_osd || !filter_osd || !osd || !sink) {
     g_printerr ("One element could not be created. Exiting.\n");
     return -1;
   }
@@ -361,8 +359,7 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
   gst_bin_add_many (GST_BIN (video_full_processing_bin),
       queue_pgie, pgie, nvvidconv_osd, filter_osd, osd, NULL);
   /* link the elements together */
-  gst_element_link_many (queue_pgie, pgie, nvvidconv_osd, filter_osd, osd,
-      NULL);
+  gst_element_link_many (queue_pgie, pgie, nvvidconv_osd, filter_osd, osd, NULL);
 
   if (output_mp4) {
     /* add all the elements to the bin */
