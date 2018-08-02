@@ -329,7 +329,7 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
     gst_caps_unref (caps_filter_sink);
     videoconvert = gst_element_factory_make ("videoconvert", "videoconverter");
     encoder = gst_element_factory_make ("avenc_mpeg4", "mp4-encoder");
-    g_object_set (G_OBJECT (encoder), "bitrate", 2000000, NULL);
+    g_object_set (G_OBJECT (encoder), "bitrate", 8000000, NULL);
     muxer = gst_element_factory_make ("qtmux", "muxer");
     sink = gst_element_factory_make ("filesink", "nvvideo-renderer");
     g_object_set (G_OBJECT (sink), "location", output_mp4, NULL);
