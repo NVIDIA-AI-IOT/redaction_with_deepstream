@@ -21,7 +21,7 @@ Download and install DeepStream 2.0
 
 2. Login to NVIDIA Developer account.
 
-3. Agree the terms of liscence agreement and download deepstream SDK 2.0 for Tesla
+3. Agree the terms of license agreement and download deepstream SDK 2.0 for Tesla
 
 4. Follow the installation instructions in the REAME in the downloaded tar file.
 

@@ -33,7 +33,7 @@ network-mode=0
 num-classes=4
 #ONLY INTERESTED IN CLASS 0 AND CLASS 1 ( Faces and LP )
 class-thresholds=0.2;0.2;1.2;1.2
-class-eps=0.2;0.1;0.2;0.2
+class-eps=0.2;0.2;0.2;0.2
 class-group-thresholds=1;1;1;1
 roi-top-offset=0;0;0;0
 roi-bottom-offset=0;0;0;0
