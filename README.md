@@ -25,7 +25,7 @@ Download and install DeepStream 2.0
 
 4. Follow the installation instructions in the REAME in the downloaded tar file.
 
-5. Key points during the DS installation include: 
+5. Key points during the DeepStream installation include: 
 	
 	* build OpenCV with CUDA9.2 and with GStreamer enabled 
 	
@@ -49,11 +49,11 @@ The Redaction pipeline implements the following steps:
 
 * Provide a supplementary file in KITTI format enumerating the bounding boxes drawn for redacting the faces and license plates. This will be needed for manual verification and rectification of the automated redaction results.
 
-The pipeline of the app is shown below:
+The application pipeline is shown below:
 
 ![alt text](pipeline/pipeline-output-to-mp4.png "pipeline")
 
-The app will ouput its pipeline to the folder `DOT_DIR` while running.
+The application will output its pipeline to the folder `DOT_DIR` while running.
 One can generate the pipeline by using the following command
 
 `dot -Tpng DOT_DIR/<.dot file> > pipeline/pipeline.png`
