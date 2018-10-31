@@ -37,7 +37,7 @@ In this app, we decode mp4 file, detect faces and license plates using "nvinfer"
 
 The pipeline of the app is shown below:
 
-![alt text](pipeline/pipeline-playing.png "pipeline")
+![alt text](pipeline/pipeline-output-to-mp4.png "pipeline")
 
 The app will ouput its pipeline to the folder `DOT_DIR` while running.
 One can generate the pipeline by `dot -Tpng DOT_DIR/<.dot file> > pipeline/pipeline.png`
