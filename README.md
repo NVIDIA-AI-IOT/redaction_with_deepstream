@@ -39,7 +39,7 @@ Download and install DeepStream SDK 3.0
 
 6. Run the samples following the instructions in the README file to make sure that the DeepStream SDK has been properly installed.
 
-### The Redaction App Pipeline Description###
+### The Redaction App Pipeline Description ###
 
 The Redaction pipeline implements the following steps:
 
