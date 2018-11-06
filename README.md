@@ -1,7 +1,7 @@
 # An example of using DeepStream SDK for redaction #
 
 <p align="center">
-  <img width="460" height="300" src="images/redaction_teaser_graphics.png">
+  <img src="images/redaction_teaser_graphics.png">
 </p>
 
 The example shows how to use DeepStream SDK 3.0 for redacting faces and license plates in video streams. 
