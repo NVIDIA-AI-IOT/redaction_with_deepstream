@@ -1,5 +1,7 @@
 # An example of using DeepStream SDK for redaction #
 
+![alt text](images/redaction_teaser_graphics.png "teaser")
+
 The example shows how to use DeepStream SDK 3.0 for redacting faces and license plates in video streams. 
 
 The example uses ResNet-10 to detect faces and license plates in the scene on a frame by frame basis. The detected faces and license plates are then automatically redacted, and image composited with the resulting frames encoded to an MP4 file. The example demonstrates the use of the following plugins of the DeepStream SDK – nvcuvidh264dec, nvvidconv, nvinfer and nvosd.
@@ -35,7 +37,7 @@ Download and install DeepStream SDK 3.0
 
 6. Run the samples following the instructions in the README file to make sure that the DeepStream SDK has been properly installed.
 
-### The Redaction App ###
+### The Redaction App Pipeline Description###
 
 The Redaction pipeline implements the following steps:
 
@@ -53,7 +55,7 @@ The Redaction pipeline implements the following steps:
 
 The application pipeline is shown below:
 
-![alt text](pipeline/pipeline-output-to-mp4.png "pipeline")
+![alt text](images/pipeline-output-to-mp4.png "pipeline")
 
 The application will output its pipeline to the folder `DOT_DIR` while running.
 One can generate the pipeline by using the following command
