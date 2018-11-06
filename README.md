@@ -2,9 +2,9 @@
 
 The example shows how to use DeepStream 2.0 for redacting faces and license plates in video streams. 
 
-The example uses ResNet-10 to detect faces and LPs in the scene on a frame by frame basis. The detected faces and LP are then filled, image composited, and  resulting frames encoded to  an MP4 file. The example demonstrates the use of the SDK's  following plugins – nvcuvidh264dec, nvvidconv, nvinfer and nvosd.
+The example uses ResNet-10 to detect faces and license plates in the scene on a frame by frame basis. The detected faces and license plates are then automatically redacted, and image composited with the resulting frames encoded to an MP4 file. The example demonstrates the use of the following plugins of the DeepStream SDK – nvcuvidh264dec, nvvidconv, nvinfer and nvosd.
 
-Note that the networks in the examples are trained with limited datasets and are not guaranteed for any accuracy. They are purely offered as an example to demonstrate the use of plugins in the DeepStream SDK 2.0
+Note that the networks in the examples are trained with limited datasets. These networks should be considered as sample networks to demonstrate the use of plugins in the DeepStream SDK 2.0, to create a redaction application. Developers should train their networks to achieve the level of accuracy needed in their applications.
 
 ---
 
@@ -21,39 +21,57 @@ Download and install DeepStream 2.0
 
 2. Login to NVIDIA Developer account.
 
-3. Agree the terms of license agreement and download deepstream SDK 2.0 for Tesla
+3. Agree to the terms of license agreement and download deepstream SDK 2.0 for Tesla.
 
 4. Follow the installation instructions in the REAME in the downloaded tar file.
 
-5. Key points during the DS installation include: build opencv with CUDA9.2 and gstreamer enabled; install TRT 4.0.
+5. Key points during the DeepStream installation include: 
+	
+	* build OpenCV with CUDA9.2 and with GStreamer enabled 
+	
+	* install TensorRT 4.0
 
-6. Make sure deepstream SDK is properly installed by running the samples following the intrucitons in README.
-
-Once DeepStream SDK is installed, you have the ability to develop your own fast video processing applications.
+6. Run the samples following the instructions in the README file to make sure that the DeepStream SDK has been properly installed.
 
 ### The Redaction App ###
 
-In this app, we decode mp4 file, detect faces and license plates using "nvinfer", referred as the primary-gie (pgie), draw colored rectangles on the original video to cover the objects of interests for redaction purpose (black patches on license plates and skin-tone patches on faces), encode back to mp4 file, and output bounding boxes of objects of interests to file in kitti format. nvinfer element attach some MetaData to the buffer. By attaching the probe function after nvinfer, one can extract meaningful information from this inference. Please refer the "osd_sink_pad_buffer_probe" function in the sample code. For details on the Metadata format, refer to the file "gstnvdsmeta.h"
+The Redaction pipeline implements the following steps:
 
-The pipeline of the app is shown below:
+* Decode the mp4 file.
 
-![alt text](pipeline/pipeline-playing.png "pipeline")
+* Detect faces and license plates using the networks provided. The “nvinfer” plugin uses the TensorRT for performing this detection. 
 
-The app will ouput its pipeline to the folder `DOT_DIR` while running.
-One can generate the pipeline by `dot -Tpng DOT_DIR/<.dot file> > pipeline/pipeline.png`
+* Draw colored rectangles with solid fill to obscure the faces and license plates and thus redact them. Black patches are used for license plates and skin tone patches for face redaction.
+
+* Encode the frames back to an mp4 file.
+
+* Write the file to disc.
+
+* Provide a supplementary file in KITTI format enumerating the bounding boxes drawn for redacting the faces and license plates. This will be needed for manual verification and rectification of the automated redaction results.
+
+The application pipeline is shown below:
+
+![alt text](pipeline/pipeline-output-to-mp4.png "pipeline")
+
+The application will output its pipeline to the folder `DOT_DIR` while running.
+One can generate the pipeline by using the following command
+
+`dot -Tpng DOT_DIR/<.dot file> > pipeline/pipeline.png`
 
 A sample output video can be found in folder `sample_videos`.
 
 ### Running the Redaction App ###
 
-1. `cd <path-to-deepstream-sdk>/sources/apps` & git clone command & `cd redaction_from_deepstream`
+1. Downloading the application
+
+`cd <path-to-deepstream-sdk>/sources/apps` & git clone command & `cd redaction_from_deepstream`
 
 
-2. Build app
+2. Building the application
 
 	`make`
 
-3. Run app
+3. Running the application
 
 	```
 	./deepstream-redaction-app -c <path-to-config-file> 
