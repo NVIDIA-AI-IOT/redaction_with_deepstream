@@ -1,6 +1,6 @@
 # An example of using DeepStream SDK for redaction #
 
-The example shows how to use DeepStream 2.0 for redacting faces and license plates in video streams. 
+The example shows how to use DeepStream 2.0/3.0 for redacting faces and license plates in video streams. 
 
 The example uses ResNet-10 to detect faces and license plates in the scene on a frame by frame basis. The detected faces and license plates are then automatically redacted, and image composited with the resulting frames encoded to an MP4 file. The example demonstrates the use of the following plugins of the DeepStream SDK – nvcuvidh264dec, nvvidconv, nvinfer and nvosd.
 
@@ -11,27 +11,21 @@ Note that the networks in the examples are trained with limited datasets. These 
 
 ### Pre-requisites: ###
 
-- [DeepStream 2.0](https://developer.nvidia.com/deepstream-sdk) for Tesla
+- [DeepStream 2.0 or DeepStream 3.0](https://developer.nvidia.com/deepstream-sdk) for Tesla
 
 ### Installing Pre-requisites: ###
 
-Download and install DeepStream 2.0
+Download and install DeepStream 2.0/3.0
 
 1. Click `Download for Tesla` from [NVIDIA Deepstream SDK home page](https://developer.nvidia.com/deepstream-sdk)
 
 2. Login to NVIDIA Developer account.
 
-3. Agree to the terms of license agreement and download deepstream SDK 2.0 for Tesla.
+3. Agree to the terms of license agreement and download deepstream SDK 2.0/3.0 for Tesla.
 
 4. Follow the installation instructions in the REAME in the downloaded tar file.
 
-5. Key points during the DeepStream installation include: 
-	
-	* build OpenCV with CUDA9.2 and with GStreamer enabled 
-	
-	* install TensorRT 4.0
-
-6. Run the samples following the instructions in the README file to make sure that the DeepStream SDK has been properly installed.
+5. Run the samples following the instructions in the README file to make sure that the DeepStream SDK has been properly installed.
 
 ### The Redaction App ###
 
@@ -64,7 +58,7 @@ A sample output video can be found in folder `sample_videos`.
 
 1. Downloading the application
 
-`cd <path-to-deepstream-sdk>/sources/apps` & git clone command & `cd redaction_from_deepstream`
+`cd <path-to-deepstream-sdk>/sources/apps` & git clone command & `cd redaction_with_deepstream`
 
 
 2. Building the application
