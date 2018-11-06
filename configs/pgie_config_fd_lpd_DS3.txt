@@ -92,6 +92,8 @@ detected-max-w=1920
 detected-max-h=1920
 
 # Per class configuration
+# ONLY INTERESTED IN CLASS 0 (Face) AND CLASS 1 (License Plate)
+# CHANGE THRESH OF CLASS 1 AND CLASS 2 TO > 1 TO REJECT THE DETCTION
 [class-attrs-2]
 threshold=1.2
 eps=0.5
