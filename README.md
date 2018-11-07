@@ -29,15 +29,7 @@ Download and install DeepStream SDK 2.0
 
 4. Follow the installation instructions in the REAME in the downloaded tar file.
 
-5. Key points during the DeepStream SDK 2.0 installation include: 
-	
-	* install NVIDIA driver 410
-
-	* install CUDA 10.0 
-	
-	* install TensorRT 5.0
-
-6. Run the samples following the instructions in the README file to make sure that the DeepStream SDK has been properly installed.
+5. Run the samples following the instructions in the README file to make sure that the DeepStream SDK has been properly installed.
 
 ### The Redaction App Pipeline Description ###
 
