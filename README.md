@@ -4,28 +4,28 @@
   <img src="images/redaction_teaser_graphics.png">
 </p>
 
-The example shows how to use DeepStream SDK 2.0 for redacting faces and license plates in video streams. 
+The example shows how to use DeepStream SDK 3.0 for redacting faces and license plates in video streams. 
 
 The example uses ResNet-10 to detect faces and license plates in the scene on a frame by frame basis. The detected faces and license plates are then automatically redacted, and image composited with the resulting frames encoded to an MP4 file. The example demonstrates the use of the following plugins of the DeepStream SDK – nvcuvidh264dec, nvvidconv, nvinfer and nvosd.
 
-Note that the networks in the examples are trained with limited datasets. These networks should be considered as sample networks to demonstrate the use of plugins in the DeepStream SDK 2.0, to create a redaction application. Developers should train their networks to achieve the level of accuracy needed in their applications.
+Note that the networks in the examples are trained with limited datasets. These networks should be considered as sample networks to demonstrate the use of plugins in the DeepStream SDK 3.0, to create a redaction application. Developers should train their networks to achieve the level of accuracy needed in their applications.
 
 ---
 
 
 ### Pre-requisites: ###
 
-- [DeepStream SDK 2.0](https://developer.nvidia.com/deepstream-sdk) for Tesla
+- [DeepStream SDK 3.0](https://developer.nvidia.com/deepstream-sdk) for Tesla
 
 ### Installing Pre-requisites: ###
 
-Download and install DeepStream SDK 2.0
+Download and install DeepStream SDK 3.0
 
 1. Click `Download for Tesla` from [NVIDIA Deepstream SDK home page](https://developer.nvidia.com/deepstream-sdk)
 
 2. Login to NVIDIA Developer account.
 
-3. Agree to the terms of license agreement and download DeepStream SDK 2.0 for Tesla.
+3. Agree to the terms of license agreement and download DeepStream SDK 3.0 for Tesla.
 
 4. Follow the installation instructions in the REAME in the downloaded tar file.
 
