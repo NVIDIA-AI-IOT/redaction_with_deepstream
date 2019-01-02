@@ -39,7 +39,7 @@ The Redaction pipeline implements the following steps:
 
 * Detect faces and license plates using the networks provided. The “nvinfer” plugin uses the TensorRT for performing this detection. 
 
-* Draw colored rectangles with solid fill to obscure the faces and license plates and thus redact them. You may customize the color by changing the corresponding RBG value in `deepstream_redaction_app.c` (line 117 - 119, line 126 - 128).
+* Draw colored rectangles with solid fill to obscure the faces and license plates and thus redact them. The color can be customized by changing the corresponding RBG value in `deepstream_redaction_app.c` (line 117 - 119, line 126 - 128).
 
 * Encode the frames back to an mp4 file.
 
