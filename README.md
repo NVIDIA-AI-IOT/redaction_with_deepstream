@@ -114,19 +114,15 @@ The benchmark performance can be found below:
 
 ### Running Speed of the provided model ###
 
+Just as a reference application, the redaction app doesn't implement the functionality to monitor perf. Below are some benchmark data points running the in-box deepstream-app offered by deepstream SDK with the redaction model.
+
 The application will resize the input frame to the input dimension of the model then inference on the resized frame. The input dimension is defined in [`fd_lpd_model/fd_lpd.prototxt`](https://github.com/NVIDIA-AI-IOT/redaction_with_deepstream/blob/master/fd_lpd_model/fd_lpd.prototxt#L25-L26). The input dimension will impact the processing speed significantly. 
 
-Just as a reference application, the redaction app doesn't implement the functionality to monitor perf. Below are some benchmark data points running the in-box deepstream-app offered by deepstream SDK with the redaction model:
-
-* GPU: 1 Tesla T4 
-
-* Docker container: DS 3.0 (nvcr.io/nvidia/deepstream:3.0-18.11)
-
-* Input: 1 Full HD stream
-
-* Batch size: 1
-
-* Precision: FP16
+GPU: 1 Tesla T4 
+Docker container: DS 3.0 (nvcr.io/nvidia/deepstream:3.0-18.11)
+Input: 1 Full HD stream
+Batch size: 1
+Precision: FP16
 
 | input_dim | processing speed (fps) | GPU Utilization (%) |
 |-----------|------------------------|---------------------|
