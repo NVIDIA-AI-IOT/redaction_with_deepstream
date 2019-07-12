@@ -23,15 +23,12 @@
 #include <gst/gst.h>
 #include <glib.h>
 #include <stdio.h>
-#include <time.h>
 #include "gstnvdsmeta.h"
+#define MAX_DISPLAY_LEN 64
 
 /* Define global variables:
  * `frame_number` & `pgie_classes_str` are used for writing meta to kitti;
  * `pgie_config`,`input_mp4`,`output_mp4`,`output_kitti` are configurable file paths parsed through command line. */
-clock_t t_start; 
-clock_t t_end;
-
 GstElement *pipeline, *video_full_processing_bin;
 gint frame_number = 0;
 gchar pgie_classes_str[4][32] = { "face", "license_plate", "make", "model" };
@@ -44,8 +41,8 @@ gchar *output_kitti = NULL;
 /* initialize our gstreamer components for the app */
 
 GMainLoop *loop = NULL;
-GstElement *source = NULL, *decoder = NULL, *streammux = NULL,
-    *queue_pgie = NULL, *pgie = NULL, *nvvidconv_osd =
+GstElement *source = NULL, *decoder = NULL,
+    *queue_pgie = NULL, *pgie = NULL, *queue_osd = NULL, *nvvidconv_osd =
     NULL, *filter_osd = NULL, *osd = NULL, *queue_sink = NULL, *nvvidconv_sink =
     NULL, *filter_sink = NULL, *videoconvert = NULL, *encoder = NULL, *muxer =
     NULL, *sink = NULL;
@@ -62,78 +59,98 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
     gpointer u_data)
 {
 
+  GstMeta *gst_meta = NULL;
+  NvDsMeta *nvdsmeta = NULL;
+  gpointer state = NULL;
+  static GQuark _nvdsmeta_quark = 0;
   GstBuffer *buf = (GstBuffer *) info->data;
-  NvDsObjectMeta *obj_meta = NULL;
-  NvDsMetaList * l_frame = NULL;
-  NvDsMetaList * l_obj = NULL;
-  NvDsBatchMeta *batch_meta = gst_buffer_get_nvds_batch_meta (buf);
+  NvDsFrameMeta *frame_meta = NULL;
+  guint num_rects = 0, rect_index = 0, l_index = 0;
+  NvDsObjectParams *obj_meta = NULL;
+  NvOSD_RectParams *rect_params = NULL;
+  guint i = 0;
+  NvOSD_TextParams *txt_params = NULL;
+  guint vehicle_count = 0;
+  guint person_count = 0;
   FILE *bbox_params_dump_file = NULL;
   gchar bbox_file[1024] = { 0 };
 
-  for (l_frame = batch_meta->frame_meta_list; l_frame != NULL;
-      l_frame = l_frame->next) {
+  if (!_nvdsmeta_quark)
+    _nvdsmeta_quark = g_quark_from_static_string (NVDS_META_STRING);
 
-    NvDsFrameMeta *frame_meta = (NvDsFrameMeta *) (l_frame->data);
-    
-    if (frame_meta == NULL) {
-      g_print ("NvDS Meta contained NULL meta \n");
-      frame_number++;
-      return GST_PAD_PROBE_OK;
+  while ((gst_meta = gst_buffer_iterate_meta (buf, &state))) {
+    if (gst_meta_api_type_has_tag (gst_meta->info->api, _nvdsmeta_quark)) {
+
+      nvdsmeta = (NvDsMeta *) gst_meta;
+
+      /* We are interested only in intercepting Meta of type
+       * "NVDS_META_FRAME_INFO" as they are from our infer elements. */
+      if (nvdsmeta->meta_type == NVDS_META_FRAME_INFO) {
+        frame_meta = (NvDsFrameMeta *) nvdsmeta->meta_data;
+        if (frame_meta == NULL) {
+          g_print ("NvDS Meta contained NULL meta \n");
+          frame_number++;
+          return GST_PAD_PROBE_OK;
+        }
+        if (output_kitti) {
+          g_snprintf (bbox_file, sizeof (bbox_file) - 1, "%s/%06d.txt",
+              output_kitti, frame_number);
+          bbox_params_dump_file = fopen (bbox_file, "w");
+        }
+
+        num_rects = frame_meta->num_rects;
+        /* This means we have num_rects in frame_meta->obj_params,
+         * now lets iterate through them */
+        for (rect_index = 0; rect_index < num_rects; rect_index++) {
+          /* Now using above information we need to form a color patch that should
+           * be displayed on the original video to cover object of interests for redaction purpose */
+          obj_meta = (NvDsObjectParams *) & frame_meta->obj_params[rect_index];
+          rect_params = &(obj_meta->rect_params);
+          txt_params = &(obj_meta->text_params);
+          if (txt_params->display_text) {
+            g_free (txt_params->display_text);
+          }
+          /* Draw black patch to cover license plates (class_id = 1) */
+          if (obj_meta->class_id == 1) {
+            rect_params->border_width = 0;
+            rect_params->has_bg_color = 1;
+            rect_params->bg_color.red = 0.0;
+            rect_params->bg_color.green = 0.0;
+            rect_params->bg_color.blue = 0.0;
+            rect_params->bg_color.alpha = 1.0;
+          }
+          /* Draw skin-color patch to cover faces (class_id = 0) */
+          if (obj_meta->class_id == 0) {
+            rect_params->border_width = 0;
+            rect_params->has_bg_color = 1;
+            rect_params->bg_color.red = 0.92;
+            rect_params->bg_color.green = 0.75;
+            rect_params->bg_color.blue = 0.56;
+            rect_params->bg_color.alpha = 1.0;
+            // rect_params->bg_color.red = 0.0;
+            // rect_params->bg_color.green = 0.0;
+            // rect_params->bg_color.blue = 0.0;
+            // rect_params->bg_color.alpha = 1.0;
+          }
+          /* Ouput bbox location as kitti file */
+          if (bbox_params_dump_file) {
+            int left = (int) (rect_params->left);
+            int top = (int) (rect_params->top);
+            int right = left + (int) (rect_params->width);
+            int bottom = top + (int) (rect_params->height);
+            int class_index = obj_meta->class_id;
+            char *text = pgie_classes_str[obj_meta->class_id];
+            fprintf (bbox_params_dump_file,
+                "%s 0.0 0 0.0 %d.00 %d.00 %d.00 %d.00 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n",
+                text, left, top, right, bottom);
+          }
+        }
+        if (bbox_params_dump_file) {
+          fclose (bbox_params_dump_file);
+          bbox_params_dump_file = NULL;
+        }
+      }
     }
-
-    if (output_kitti) {
-      g_snprintf (bbox_file, sizeof (bbox_file) - 1, "%s/%06d.txt",
-          output_kitti, frame_number);
-        bbox_params_dump_file = fopen (bbox_file, "w");
-    }
-
-    for (l_obj = frame_meta->obj_meta_list; l_obj != NULL;
-        l_obj = l_obj->next) {
-      obj_meta = (NvDsObjectMeta *) (l_obj->data);
-
-      NvOSD_RectParams * rect_params = &(obj_meta->rect_params);
-      NvOSD_TextParams * text_params = &(obj_meta->text_params);
-
-      if (text_params->display_text) {
-        text_params->set_bg_clr = 0;
-        text_params->font_params.font_size = 0;
-      }
-
-      /* Draw black patch to cover license plates (class_id = 1) */
-      if (obj_meta->class_id == 1) {
-        rect_params->border_width = 0;
-        rect_params->has_bg_color = 1;
-        rect_params->bg_color.red = 0.0;
-        rect_params->bg_color.green = 0.0;
-        rect_params->bg_color.blue = 0.0;
-        rect_params->bg_color.alpha = 1.0;
-      }
-      /* Draw skin-color patch to cover faces (class_id = 0) */
-      if (obj_meta->class_id == 0) {
-        rect_params->border_width = 0;
-        rect_params->has_bg_color = 1;
-        rect_params->bg_color.red = 0.92;
-        rect_params->bg_color.green = 0.75;
-        rect_params->bg_color.blue = 0.56;
-        rect_params->bg_color.alpha = 1.0;
-      }
-      if (bbox_params_dump_file) {
-        int left = (int) (rect_params->left);
-        int top = (int) (rect_params->top);
-        int right = left + (int) (rect_params->width);
-        int bottom = top + (int) (rect_params->height);
-        int class_index = obj_meta->class_id;
-        char *text = pgie_classes_str[obj_meta->class_id];
-        fprintf (bbox_params_dump_file,
-            "%s 0.0 0 0.0 %d.00 %d.00 %d.00 %d.00 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n",
-            text, left, top, right, bottom);
-      }
-
-    }
-    if (bbox_params_dump_file) {
-      fclose (bbox_params_dump_file);
-      bbox_params_dump_file = NULL;
-    }  
   }
   frame_number++;
   return GST_PAD_PROBE_OK;
@@ -148,12 +165,6 @@ bus_call (GstBus * bus, GstMessage * msg, gpointer data)
   switch (GST_MESSAGE_TYPE (msg)) {
     case GST_MESSAGE_EOS:
       g_print ("End of stream\n");
-      t_end = clock(); 
-      clock_t t = t_end - t_start;
-      double time_taken = ((double)t)/CLOCKS_PER_SEC; // in seconds 
-      double fps = frame_number/time_taken;
-      g_print("\nThe program took %.2f seconds to redact %d frames, pref = %.2f fps \n\n", time_taken,frame_number,fps); 
-      
       g_main_loop_quit (loop);
       break;
     case GST_MESSAGE_ERROR:{
@@ -177,7 +188,6 @@ bus_call (GstBus * bus, GstMessage * msg, gpointer data)
             g_print ("Pipeline running\n");
             GST_DEBUG_BIN_TO_DOT_FILE_WITH_TS (GST_BIN (pipeline),
                 GST_DEBUG_GRAPH_SHOW_ALL, "ds-app-playing");
-            t_start = clock(); 
             break;
           case GST_STATE_PAUSED:
             if (oldstate == GST_STATE_PLAYING) {
@@ -291,31 +301,24 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
   /* Create main processing bin */
   video_full_processing_bin = gst_bin_new ("video-process-bin");
 
-  /* Create nvstreammux instance to form batches from one or more sources. */
-  streammux = gst_element_factory_make ("nvstreammux", "stream-muxer");
-  g_object_set (G_OBJECT (streammux), "width", 1920, "height",
-      1080, "batch-size", 1,
-      "batched-push-timeout", 4000000, NULL);
-
-  gchar pad_name_sink[16] = "sink_0";
-  videopad = gst_element_get_request_pad (streammux, pad_name_sink);
-
   /* Use nvinfer to run inferencing on decoder's output,
    * behaviour of inferencing is set through config file.
    * Create components for the detection */
   queue_pgie = gst_element_factory_make ("queue", "queue_pgie");
   pgie = gst_element_factory_make ("nvinfer", "primary-nvinference-engine");
   g_object_set (G_OBJECT (pgie), "config-file-path", pgie_config, NULL);
+  videopad = gst_element_get_static_pad (queue_pgie, "sink");
 
   /* Use nvosd to render bbox/text on top of the input video.
    * Create components for the rendering */
-  nvvidconv_osd = gst_element_factory_make ("nvvideoconvert", "nvvidconv_osd");
+  queue_osd = gst_element_factory_make ("queue", "queue_osd");
+  nvvidconv_osd = gst_element_factory_make ("nvvidconv", "nvvidconv_osd");
   filter_osd = gst_element_factory_make ("capsfilter", "filter_osd");
   caps_filter_osd =
       gst_caps_from_string ("video/x-raw(memory:NVMM), format=RGBA");
   g_object_set (G_OBJECT (filter_osd), "caps", caps_filter_osd, NULL);
   gst_caps_unref (caps_filter_osd);
-  osd = gst_element_factory_make ("nvdsosd", "nv-onscreendisplay");
+  osd = gst_element_factory_make ("nvosd", "nv-onscreendisplay");
   // g_object_set (G_OBJECT (osd), "gpu-id", 0, NULL);
 
   /* Create components for the output */
@@ -323,14 +326,14 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
   if (output_mp4) {
     /* If output file is set, then create components for encoding and exporting to mp4 file */
     queue_sink = gst_element_factory_make ("queue", "queue_sink");
-    nvvidconv_sink = gst_element_factory_make ("nvvideoconvert", "nvvidconv_sink");
+    nvvidconv_sink = gst_element_factory_make ("nvvidconv", "nvvidconv_sink");
     filter_sink = gst_element_factory_make ("capsfilter", "filter_sink");
-    caps_filter_sink = gst_caps_from_string ("video/x-raw, format=I420");
+    caps_filter_sink = gst_caps_from_string ("video/x-raw, format=RGBA");
     g_object_set (G_OBJECT (filter_sink), "caps", caps_filter_sink, NULL);
     gst_caps_unref (caps_filter_sink);
     videoconvert = gst_element_factory_make ("videoconvert", "videoconverter");
     encoder = gst_element_factory_make ("avenc_mpeg4", "mp4-encoder");
-    g_object_set (G_OBJECT (encoder), "bitrate", 4000000, NULL);
+    g_object_set (G_OBJECT (encoder), "bitrate", 8000000, NULL);
     muxer = gst_element_factory_make ("qtmux", "muxer");
     sink = gst_element_factory_make ("filesink", "nvvideo-renderer");
     g_object_set (G_OBJECT (sink), "location", output_mp4, NULL);
@@ -341,7 +344,7 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
 
   /* Check all components */
   if (!pipeline || !source || !decoder || !video_full_processing_bin
-      || !queue_pgie || !pgie || !nvvidconv_osd || !filter_osd
+      || !queue_pgie || !pgie || !queue_osd || !nvvidconv_osd || !filter_osd
       || !osd || !sink) {
     g_printerr ("One element could not be created. Exiting.\n");
     return -1;
@@ -359,10 +362,10 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
 
   /* Set up the video_full_processing_bin */
   /* add all the elements to the bin */
-  gst_bin_add_many (GST_BIN (video_full_processing_bin), streammux,
+  gst_bin_add_many (GST_BIN (video_full_processing_bin),
       queue_pgie, pgie, nvvidconv_osd, filter_osd, osd, NULL);
   /* link the elements together */
-  gst_element_link_many (streammux, queue_pgie, pgie, nvvidconv_osd, filter_osd, osd,
+  gst_element_link_many (queue_pgie, pgie, nvvidconv_osd, filter_osd, osd,
       NULL);
 
   if (output_mp4) {
