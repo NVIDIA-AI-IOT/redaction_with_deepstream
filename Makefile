@@ -20,6 +20,10 @@
 
 APP:= deepstream-redaction-app
 
+NVDS_VERSION:=4.0
+
+LIB_INSTALL_DIR?=/opt/nvidia/deepstream/deepstream-$(NVDS_VERSION)/lib/
+
 SRCS:= $(wildcard *.c)
 
 INCS:= $(wildcard *.h)
@@ -33,6 +37,9 @@ CFLAGS:= -I../../includes
 CFLAGS+= `pkg-config --cflags $(PKGS)`
 
 LIBS:= `pkg-config --libs $(PKGS)`
+
+LIBS+= -L$(LIB_INSTALL_DIR) -lnvdsgst_meta -lnvds_meta \
+       -Wl,-rpath,$(LIB_INSTALL_DIR)
 
 all: $(APP)
 

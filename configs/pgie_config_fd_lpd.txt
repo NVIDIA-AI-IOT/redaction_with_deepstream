@@ -64,15 +64,15 @@ model-file=../fd_lpd_model/fd_lpd.caffemodel
 proto-file=../fd_lpd_model/fd_lpd.prototxt
 model-engine-file=../fd_lpd_model/fd_lpd.caffemodel_b1_fp32.engine
 labelfile-path=../fd_lpd_model/labels.txt
-net-stride=16
+
 batch-size=1
+process-mode=1
+model-color-format=0
 ## 0=FP32, 1=INT8, 2=FP16 mode
 network-mode=0
-
 num-detected-classes=4
 interval=0
 gie-unique-id=1
-parse-func=4
 output-blob-names=output_bbox;output_cov
 #parse-bbox-func-name=NvDsInferParseCustomResnet
 #custom-lib-path=/path/to/libnvdsparsebbox.so
@@ -116,5 +116,3 @@ detected-min-w=40
 detected-min-h=40
 detected-max-w=400
 detected-max-h=800
-
-parser-bbox-norm=35.0;35.0
