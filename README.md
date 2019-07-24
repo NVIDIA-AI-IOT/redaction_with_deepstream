@@ -6,7 +6,7 @@
 
 The example shows how to use DeepStream SDK 4.0 for redacting faces and license plates in video streams. 
 
-The example uses ResNet-10 to detect faces and license plates in the scene on a frame by frame basis. The detected faces and license plates are then automatically redacted, and image composited with the resulting frames encoded to an MP4 file. The example demonstrates the use of the following plugins of the DeepStream SDK – nvcuvidh264dec, nvvidconv, nvinfer and nvosd.
+The example uses ResNet-10 to detect faces and license plates in the scene on a frame by frame basis. The detected faces and license plates are then automatically redacted. The image composited with the resulting frames can be displayed on screen or be encoded to an MP4 file by the choice of user. The example runs on both NVIDIA dGPUs as well as NVIDIA jetson platforms. The example demonstrates the use of the following plugins of the DeepStream SDK – nvcuvidh264dec, nvvidconv, nvinfer and nvosd.
 
 Note that the networks in the examples are trained with limited datasets. These networks should be considered as sample networks to demonstrate the use of plugins in the DeepStream SDK 4.0, to create a redaction application. Developers should train their networks to achieve the level of accuracy needed in their applications.
 
@@ -15,37 +15,35 @@ Note that the networks in the examples are trained with limited datasets. These 
 
 ### Pre-requisites: ###
 
-- [DeepStream SDK 4.0](https://developer.nvidia.com/deepstream-sdk) for Tesla
+- [DeepStream SDK 4.0](https://developer.nvidia.com/deepstream-sdk)
 
 ### Installing Pre-requisites: ###
 
 Download and install DeepStream SDK 4.0
 
-1. Click `Download` from [NVIDIA Deepstream SDK home page](https://developer.nvidia.com/deepstream-sdk), then select "DeepStream 4.0 for T4 and V100"
+1. Click `Download` from [NVIDIA Deepstream SDK home page](https://developer.nvidia.com/deepstream-sdk), then select "DeepStream 4.0 for T4 and V100" if you work on NVIDIA dGPUS or select "DeepStream 4.0 for Jetson" if you work on NVIDIA Jetson platforms. 
 
 2. Login to NVIDIA Developer account.
 
-3. Agree to the terms of license agreement and download DeepStream SDK 4.0 for Tesla.
+3. Agree to the terms of license agreement and download DeepStream SDK 4.0.
 
 4. Follow the installation instructions in the REAME in the downloaded tar file.
 
-5. Run the samples following the instructions in the README file to make sure that the DeepStream SDK has been properly installed.
+5. Run the samples following the instructions in the README file to make sure that the DeepStream SDK has been properly installed on your system.
 
 ### The Redaction App Pipeline Description ###
 
 The Redaction pipeline implements the following steps:
 
-* Decode the mp4 file.
+* Decode the mp4 file or read the stream from a webcam (tested with C920 Pro HD Webcam from Logitech).
 
 * Detect faces and license plates using the networks provided. The “nvinfer” plugin uses the TensorRT for performing this detection. 
 
-* Draw colored rectangles with solid fill to obscure the faces and license plates and thus redact them. The color can be customized by changing the corresponding RBG value in `deepstream_redaction_app.c` (line 106 - 108, line 115 - 117).
+* Draw colored rectangles with solid fill to obscure the faces and license plates and thus redact them. The color can be customized by changing the corresponding RBG value in `deepstream_redaction_app.c` (line 109 - 111, line 118 - 120).
 
-* Encode the frames back to an mp4 file.
+* Display the frames on screen or encode the frames back to an mp4 file and then write the file to disc.
 
-* Write the file to disc.
-
-* Provide a supplementary file in KITTI format enumerating the bounding boxes drawn for redacting the faces and license plates. This will be needed for manual verification and rectification of the automated redaction results.
+* User can choose to ouput supplementary files in KITTI format enumerating the bounding boxes drawn for redacting the faces and license plates. This will be needed for manual verification and rectification of the automated redaction results.
 
 The application pipeline is shown below:
 
@@ -74,8 +72,8 @@ A sample output video can be found in folder `sample_videos`.
 
 	```
 	./deepstream-redaction-app -c <path-to-config-file> 
-							   -i <path-to-input-mp4-file> 
-							  [-o <path-to-output-mp4-file> 
+							  [-i <path-to-input-mp4-file> 
+							   -o <path-to-output-mp4-file> 
 							   -k <path-to-output-kitti-folder>]
 	```
 
@@ -111,7 +109,13 @@ The benchmark performance can be found below:
 | detector input_dim | 1080x1920 |      24.54      | 27.15 | 28.82 |
 |                    |  540x960  |      36.38      | 42.94 | 48.01 |
 |                    |  270x480  |      40.67      | 48.28 | 54.60 |
+|                    |           |                 |       |       | 
+|   Jetson Xavier    |           | encoder bitrate |       |       |
+|                    | perf(fps) |        8m       |   4m  |   2m  |
+| detector input_dim |  540x960  |      14.17      | 16.25 | 18.13 |
+|                    |  270x480  |      14.24      | 16.39 | 18.52 |
 
+Note: the app is using a non-gpu accelerated encoder provided from gstreamer, so that the end-to-end performance is bounded by the encoder, specially for the Jetson Xavier case. The end-to-end performance with NVIDIA's gpu accelerated encoder will be tested in the future.
 
 ### Running Speed of the provided model ###
 

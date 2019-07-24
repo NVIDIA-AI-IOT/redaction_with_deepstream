@@ -46,12 +46,15 @@ gchar *output_kitti = NULL;
 GMainLoop *loop = NULL;
 GstElement *source = NULL, *decoder = NULL, *streammux = NULL,
     *queue_pgie = NULL, *pgie = NULL, *nvvidconv_osd =
-    NULL, *filter_osd = NULL, *osd = NULL, *queue_sink = NULL, *nvvidconv_sink =
+    NULL, *osd = NULL, *queue_sink = NULL, *nvvidconv_sink =
     NULL, *filter_sink = NULL, *videoconvert = NULL, *encoder = NULL, *muxer =
-    NULL, *sink = NULL;
+    NULL, *sink = NULL, *nvvidconv_src = NULL, *vidconv_src=NULL, *filter_src=NULL;
+#ifdef PLATFORM_TEGRA
+  GstElement *transform = NULL;
+#endif
 GstBus *bus = NULL;
 guint bus_watch_id;
-GstCaps *caps_filter_osd = NULL, *caps_filter_sink = NULL;
+GstCaps *caps_filter_osd = NULL, *caps_filter_sink = NULL, *caps_filter_src = NULL;
 gulong osd_probe_id = 0;
 GstPad *osd_sink_pad = NULL, *videopad = NULL;
 
@@ -245,7 +248,7 @@ main (int argc, char *argv[])
           "(required) configuration file for the nvinfer detector (primary gie)",
         NULL},
     {"input_mp4", 'i', 0, G_OPTION_ARG_STRING, &input_mp4,
-        "(required) path to input mp4 file", NULL},
+          "(optional) path to input mp4 file. If this is unset then usb webcam will be used as input", NULL},
     {"output_mp4", 'o', 0, G_OPTION_ARG_STRING, &output_mp4,
           "(optional) path to output mp4 file. If this is unset then on-screen display will be used",
         NULL},
@@ -258,7 +261,7 @@ the path does not exist then app won't output kitti files",
   ctx =
       g_option_context_new
       ("\n\n  'Fast Video Redaction App using NVIDIA Deepstream'\n  \
-contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
+contact: Shuo Wang (shuow@nvidia.com)");
   g_option_context_add_main_entries (ctx, entries, NULL);
   g_option_context_add_group (ctx, gst_init_get_option_group ());
   if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
@@ -270,8 +273,8 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
   g_option_context_free (ctx);
 
   /* Check input arguments */
-  if (!input_mp4 || !pgie_config) {
-    g_printerr ("missing input file or pgie configuration file\n");
+  if (!pgie_config) {
+    g_printerr ("missing pgie configuration file\n");
     g_printerr ("run: %s --help for usage instruction\n", argv[0]);
     return -1;
   }
@@ -282,20 +285,39 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
   /* Create gstreamer pipeline */
   pipeline = gst_pipeline_new ("ds-redaction-pipeline");
 
-  /* Create components for decoding the input mp4 file */
-  source = gst_element_factory_make ("filesrc", "file-source");
-  g_object_set (G_OBJECT (source), "location", input_mp4, NULL);
-  decoder = gst_element_factory_make ("decodebin", "decoder");
-  g_signal_connect (decoder, "pad-added", G_CALLBACK (cb_newpad), NULL);
+  /* Create components for the input source */
+  if (input_mp4) {
+    source = gst_element_factory_make ("filesrc", "file-source");
+    g_object_set (G_OBJECT (source), "location", input_mp4, NULL);
+    decoder = gst_element_factory_make ("decodebin", "decoder");
+    g_signal_connect (decoder, "pad-added", G_CALLBACK (cb_newpad), NULL);
+
+    gst_bin_add_many (GST_BIN (pipeline), source, decoder, NULL);
+    gst_element_link (source, decoder);
+  } else {
+    source = gst_element_factory_make ("v4l2src", "camera-source");
+    g_object_set (G_OBJECT (source), "device", "/dev/video0", NULL);
+    vidconv_src = gst_element_factory_make ("videoconvert", "vidconv_src");
+    nvvidconv_src = gst_element_factory_make ("nvvideoconvert", "nvvidconv_src");
+    filter_src = gst_element_factory_make ("capsfilter", "filter_src");
+    g_object_set (G_OBJECT (nvvidconv_src), "nvbuf-memory-type", 0, NULL);
+    caps_filter_src =
+        gst_caps_from_string ("video/x-raw(memory:NVMM), format=NV12, width=1280, height=720, framerate=30/1");
+    g_object_set (G_OBJECT (filter_src), "caps", caps_filter_src, NULL);
+    gst_caps_unref (caps_filter_src);
+
+    gst_bin_add_many (GST_BIN (pipeline), source, vidconv_src, nvvidconv_src, filter_src, NULL);
+    gst_element_link_many (source, vidconv_src, nvvidconv_src, filter_src, NULL);
+  }
 
   /* Create main processing bin */
   video_full_processing_bin = gst_bin_new ("video-process-bin");
 
   /* Create nvstreammux instance to form batches from one or more sources. */
   streammux = gst_element_factory_make ("nvstreammux", "stream-muxer");
-  g_object_set (G_OBJECT (streammux), "width", 1920, "height",
-      1080, "batch-size", 1,
-      "batched-push-timeout", 4000000, NULL);
+  g_object_set (G_OBJECT (streammux), "width", 1280, "height",
+      720, "batch-size", 1, "batched-push-timeout", 40000, NULL);
+  g_object_set (G_OBJECT (streammux), "nvbuf-memory-type", 0, NULL);
 
   gchar pad_name_sink[16] = "sink_0";
   videopad = gst_element_get_request_pad (streammux, pad_name_sink);
@@ -310,13 +332,7 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
   /* Use nvosd to render bbox/text on top of the input video.
    * Create components for the rendering */
   nvvidconv_osd = gst_element_factory_make ("nvvideoconvert", "nvvidconv_osd");
-  filter_osd = gst_element_factory_make ("capsfilter", "filter_osd");
-  caps_filter_osd =
-      gst_caps_from_string ("video/x-raw(memory:NVMM), format=RGBA");
-  g_object_set (G_OBJECT (filter_osd), "caps", caps_filter_osd, NULL);
-  gst_caps_unref (caps_filter_osd);
   osd = gst_element_factory_make ("nvdsosd", "nv-onscreendisplay");
-  // g_object_set (G_OBJECT (osd), "gpu-id", 0, NULL);
 
   /* Create components for the output */
 
@@ -330,18 +346,41 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
     gst_caps_unref (caps_filter_sink);
     videoconvert = gst_element_factory_make ("videoconvert", "videoconverter");
     encoder = gst_element_factory_make ("avenc_mpeg4", "mp4-encoder");
-    g_object_set (G_OBJECT (encoder), "bitrate", 4000000, NULL);
+    g_object_set (G_OBJECT (encoder), "bitrate", 1000000, NULL);
     muxer = gst_element_factory_make ("qtmux", "muxer");
     sink = gst_element_factory_make ("filesink", "nvvideo-renderer");
     g_object_set (G_OBJECT (sink), "location", output_mp4, NULL);
+
   } else {
-    /* If output file is not set, use on-screen display as output */
+  	/* If output file is not set, use on-screen display as output */
+#ifdef PLATFORM_TEGRA
+
+    transform = gst_element_factory_make ("nvegltransform", "nvegl-transform");
+    if(!transform) {
+      g_printerr ("One tegra element could not be created. Exiting.\n");
+      return -1;
+    }
     sink = gst_element_factory_make ("nveglglessink", "nvvideo-renderer");
+    g_object_set (sink, "sync", FALSE, "max-lateness", -1,
+      "async", FALSE, "qos", TRUE, NULL);
+
+#else
+
+    sink = gst_element_factory_make ("nveglglessink", "nvvideo-renderer");
+    g_object_set (sink, "sync", FALSE, "max-lateness", -1,
+      "async", FALSE, "qos", TRUE, NULL);
+
+    if (input_mp4) {
+    	g_object_set (sink, "sync", TRUE, NULL);
+    }
+
+#endif
+    		
   }
 
   /* Check all components */
-  if (!pipeline || !source || !decoder || !video_full_processing_bin
-      || !queue_pgie || !pgie || !nvvidconv_osd || !filter_osd
+  if (!pipeline || !source || !video_full_processing_bin
+      || !queue_pgie || !pgie || !nvvidconv_osd
       || !osd || !sink) {
     g_printerr ("One element could not be created. Exiting.\n");
     return -1;
@@ -353,39 +392,61 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
   gst_object_unref (bus);
 
   /* Set up the pipeline */
-  /* add decode bin into the pipeline */
-  gst_bin_add_many (GST_BIN (pipeline), source, decoder, NULL);
-  gst_element_link (source, decoder);
-
-  /* Set up the video_full_processing_bin */
-  /* add all the elements to the bin */
   gst_bin_add_many (GST_BIN (video_full_processing_bin), streammux,
-      queue_pgie, pgie, nvvidconv_osd, filter_osd, osd, NULL);
+      queue_pgie, pgie, nvvidconv_osd, osd, NULL);
   /* link the elements together */
-  gst_element_link_many (streammux, queue_pgie, pgie, nvvidconv_osd, filter_osd, osd,
+  gst_element_link_many (streammux, queue_pgie, pgie, nvvidconv_osd, osd,
       NULL);
 
-  if (output_mp4) {
-    /* add all the elements to the bin */
-    gst_bin_add_many (GST_BIN (video_full_processing_bin),
-        queue_sink, nvvidconv_sink, filter_sink, videoconvert, encoder, muxer,
-        sink, NULL);
-    /* link the elements together */
-    gst_element_link_many (osd, queue_sink, nvvidconv_sink, filter_sink,
-        videoconvert, encoder, muxer, sink, NULL);
-  } else {
-    /* add all the elements to the bin */
-    gst_bin_add_many (GST_BIN (video_full_processing_bin), sink, NULL);
-    /* link the elements together */
-    gst_element_link (osd, sink);
-  }
-
-  /* add the video_full_processing_bin into the pipeline */
   gst_element_add_pad (video_full_processing_bin, gst_ghost_pad_new ("sink",
           videopad));
   gst_object_unref (videopad);
   gst_bin_add (GST_BIN (pipeline), video_full_processing_bin);
 
+  /* link soure and video_full_processing_bin */
+  if (!input_mp4){
+
+    GstPad *sinkpad, *srcpad;
+
+    sinkpad = gst_element_get_static_pad (video_full_processing_bin, "sink");
+    if (!sinkpad) {
+      g_printerr ("video_full_processing_bin request sink pad failed. Exiting.\n");
+      return -1;
+    }
+
+    srcpad = gst_element_get_static_pad (filter_src, "src");
+    if (!srcpad) {
+      g_printerr ("filter_src request src pad failed. Exiting.\n");
+      return -1;
+    }
+
+    if (gst_pad_link (srcpad, sinkpad) != GST_PAD_LINK_OK) {
+        g_printerr ("Failed to link pads. Exiting.\n");
+        return -1;
+    }
+
+    gst_object_unref (sinkpad);
+    gst_object_unref (srcpad);
+  }
+
+  if (output_mp4) {
+    gst_bin_add_many (GST_BIN (video_full_processing_bin),
+        queue_sink, nvvidconv_sink, filter_sink, videoconvert, encoder, muxer,
+        sink, NULL);
+
+    /* link the elements together */
+    gst_element_link_many (osd, queue_sink, nvvidconv_sink, filter_sink,
+        videoconvert, encoder, muxer, sink, NULL);
+  } else {
+#ifdef PLATFORM_TEGRA
+    gst_bin_add_many (GST_BIN (video_full_processing_bin), transform, sink, NULL);
+    gst_element_link_many (osd, transform , sink, NULL);
+#else
+    gst_bin_add_many (GST_BIN (video_full_processing_bin), sink, NULL);
+    gst_element_link (osd, sink);
+#endif  	
+  }
+  
   /* add probe to get informed of the meta data generated, we add probe to
    * the sink pad of the osd element, since by that time, the buffer would have
    * had got all the metadata. */
@@ -397,11 +458,18 @@ contact: Shuo Wang (shuow@nvidia.com), Milind Naphade (mnaphade@nvidia.com)");
         osd_sink_pad_buffer_probe, NULL, NULL);
 
   /* Set the pipeline to "playing" state */
-  g_print ("Now playing: %s\n", input_mp4);
+  if (input_mp4) {
+  	g_print ("Now playing: %s\n", input_mp4);
+  } else {
+  	g_print ("Now playing from webcam\n");
+  }
+  
   gst_element_set_state (pipeline, GST_STATE_PLAYING);
 
   /* Wait till pipeline encounters an error or EOS */
   g_main_loop_run (loop);
+  GST_DEBUG_BIN_TO_DOT_FILE_WITH_TS (GST_BIN (pipeline),
+                GST_DEBUG_GRAPH_SHOW_ALL, "ds-app-playing");
 
   /* Out of the main loop, clean up nicely */
   g_print ("Returned, stopping playback\n");
