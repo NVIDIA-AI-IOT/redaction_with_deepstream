@@ -64,6 +64,7 @@ A sample output video can be found in folder `sample_videos`.
 
 `cd <path-to-deepstream-sdk>/sources/apps` & git clone command & `cd redaction_with_deepstream`
 
+(if you want to use it with Deepstream 3.0, do `$ git checkout 324e34c1da7149210eea6c8208f2dc70fb7f952a`)
 
 2. Building the application
 
