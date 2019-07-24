@@ -21,7 +21,7 @@ Note that the networks in the examples are trained with limited datasets. These 
 
 Download and install DeepStream SDK 4.0
 
-1. Click `Download` from [NVIDIA Deepstream SDK home page](https://developer.nvidia.com/deepstream-sdk), then select "DeepStream 4.0 for T4 and V100" if you work on NVIDIA dGPUS or select "DeepStream 4.0 for Jetson" if you work on NVIDIA Jetson platforms. 
+1. Click `Download` from [NVIDIA Deepstream SDK home page](https://developer.nvidia.com/deepstream-sdk), then select `DeepStream 4.0 for T4 and V100` if you work on NVIDIA dGPUS or select `DeepStream 4.0 for Jetson` if you work on NVIDIA Jetson platforms. 
 
 2. Login to NVIDIA Developer account.
 
