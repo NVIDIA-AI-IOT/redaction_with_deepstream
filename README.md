@@ -85,7 +85,7 @@ When converting the raw mp4 video to a redacted mp4 video, the application inclu
 
 * The decoding perf could be affected by the resolution of the input source.
 
-* The detetion speed could be affected by various factors of the inference model including: input dimension, batch size, floating point precision, etc. (For more information about the input dimension of the provided model, check the section `Running Speed of the provided model` below.)
+* The detection speed could be affected by various factors of the inference model including: input dimension, batch size, floating point precision, etc. (For more information about the input dimension of the provided model, check the section `Running Speed of the provided model` below.)
 
 * The encoding perf could be affected by bitrate. (In this reference application we are not using GPU-accelerated encoder.)
 
