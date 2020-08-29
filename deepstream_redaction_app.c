@@ -1,23 +1,17 @@
 /*
- * Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2018-2020, NVIDIA CORPORATION.  All rights reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <gst/gst.h>
@@ -47,7 +41,7 @@ GMainLoop *loop = NULL;
 GstElement *source = NULL, *decoder = NULL, *streammux = NULL,
     *queue_pgie = NULL, *pgie = NULL, *nvvidconv_osd =
     NULL, *osd = NULL, *queue_sink = NULL, *nvvidconv_sink =
-    NULL, *filter_sink = NULL, *videoconvert = NULL, *encoder = NULL, *muxer =
+    NULL, *caps_filter = NULL, *encoder = NULL, *h264parse = NULL, *muxer =
     NULL, *sink = NULL, *nvvidconv_src = NULL, *vidconv_src=NULL, *filter_src=NULL;
 #ifdef PLATFORM_TEGRA
   GstElement *transform = NULL;
@@ -340,14 +334,14 @@ contact: Shuo Wang (shuow@nvidia.com)");
     /* If output file is set, then create components for encoding and exporting to mp4 file */
     queue_sink = gst_element_factory_make ("queue", "queue_sink");
     nvvidconv_sink = gst_element_factory_make ("nvvideoconvert", "nvvidconv_sink");
-    filter_sink = gst_element_factory_make ("capsfilter", "filter_sink");
-    caps_filter_sink = gst_caps_from_string ("video/x-raw, format=I420");
-    g_object_set (G_OBJECT (filter_sink), "caps", caps_filter_sink, NULL);
+    caps_filter = gst_element_factory_make ("capsfilter", "caps-filter");
+    caps_filter_sink = gst_caps_from_string ("video/x-raw(memory:NVMM), format=I420");
+    g_object_set (G_OBJECT (caps_filter), "caps", caps_filter_sink, NULL);
     gst_caps_unref (caps_filter_sink);
-    videoconvert = gst_element_factory_make ("videoconvert", "videoconverter");
-    encoder = gst_element_factory_make ("avenc_mpeg4", "mp4-encoder");
+    encoder = gst_element_factory_make ("nvv4l2h264enc", "h264-encoder");
     g_object_set (G_OBJECT (encoder), "bitrate", 1000000, NULL);
-    muxer = gst_element_factory_make ("qtmux", "muxer");
+    h264parse = gst_element_factory_make ("h264parse", "h264-parse");
+    muxer = gst_element_factory_make ("matroskamux", "muxer");
     sink = gst_element_factory_make ("filesink", "nvvideo-renderer");
     g_object_set (G_OBJECT (sink), "location", output_mp4, NULL);
 
@@ -431,12 +425,12 @@ contact: Shuo Wang (shuow@nvidia.com)");
 
   if (output_mp4) {
     gst_bin_add_many (GST_BIN (video_full_processing_bin),
-        queue_sink, nvvidconv_sink, filter_sink, videoconvert, encoder, muxer,
-        sink, NULL);
+        queue_sink, nvvidconv_sink, caps_filter, encoder, h264parse,
+        muxer, sink, NULL);
 
     /* link the elements together */
-    gst_element_link_many (osd, queue_sink, nvvidconv_sink, filter_sink,
-        videoconvert, encoder, muxer, sink, NULL);
+    gst_element_link_many (osd, queue_sink, nvvidconv_sink,
+        caps_filter, encoder, h264parse, muxer, sink, NULL);
   } else {
 #ifdef PLATFORM_TEGRA
     gst_bin_add_many (GST_BIN (video_full_processing_bin), transform, sink, NULL);
@@ -444,9 +438,9 @@ contact: Shuo Wang (shuow@nvidia.com)");
 #else
     gst_bin_add_many (GST_BIN (video_full_processing_bin), sink, NULL);
     gst_element_link (osd, sink);
-#endif  	
+#endif
   }
-  
+
   /* add probe to get informed of the meta data generated, we add probe to
    * the sink pad of the osd element, since by that time, the buffer would have
    * had got all the metadata. */
