@@ -1,4 +1,4 @@
- # Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
+ # Copyright (c) 2018-2021, NVIDIA CORPORATION. All rights reserved.
  #
  # Permission is hereby granted, free of charge, to any person obtaining a
  # copy of this software and associated documentation files (the "Software"),
@@ -77,13 +77,12 @@ output-blob-names=output_bbox;output_cov
 #parse-bbox-func-name=NvDsInferParseCustomResnet
 #custom-lib-path=/path/to/libnvdsparsebbox.so
 #enable-dbscan=1
+cluster-mode=2
 
 [class-attrs-all]
-threshold=0.2
-group-threshold=1
-## Set eps=0.7 and minBoxes for enable-dbscan=1
-eps=0.2
-#minBoxes=3
+pre-cluster-threshold=0.2
+topk=20
+nms-iou-threshold=0.5
 roi-top-offset=0
 roi-bottom-offset=0
 detected-min-w=0
@@ -95,9 +94,7 @@ detected-max-h=1920
 # ONLY INTERESTED IN CLASS 0 (Face) AND CLASS 1 (License Plate)
 # CHANGE THRESH OF CLASS 1 AND CLASS 2 TO > 1 TO REJECT THE DETCTION
 [class-attrs-2]
-threshold=1.2
-eps=0.5
-group-threshold=3
+pre-cluster-threshold=1.2
 roi-top-offset=20
 roi-bottom-offset=10
 detected-min-w=40
@@ -107,9 +104,7 @@ detected-max-h=800
 
 # Per class configuration
 [class-attrs-3]
-threshold=1.2
-eps=0.5
-group-threshold=3
+pre-cluster-threshold=1.2
 roi-top-offset=20
 roi-bottom-offset=10
 detected-min-w=40

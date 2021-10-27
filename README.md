@@ -4,30 +4,30 @@
   <img src="images/redaction_teaser_graphics.png">
 </p>
 
-The example shows how to use DeepStream SDK 5.0 for redacting faces and license plates in video streams. 
+The example shows how to use DeepStream SDK 6.0 for redacting faces and license plates in video streams. 
 
 The example uses ResNet-10 to detect faces and license plates in the scene on a frame by frame basis. The detected faces and license plates are then automatically redacted. The image composited with the resulting frames can be displayed on screen or be encoded to an MP4 file by the choice of user. The example runs on both NVIDIA dGPUs as well as NVIDIA jetson platforms (tested on Jetson Xavier and Jetson Nano). The example demonstrates the use of the following plugins of the DeepStream SDK – nvv4l2decoder, nvvideoconvert, nvinfer and nvdsosd.
 
-Note that the networks in the examples are trained with limited datasets. These networks should be considered as sample networks to demonstrate the use of plugins in the DeepStream SDK 5.0, to create a redaction application. Developers should train their networks to achieve the level of accuracy needed in their applications.
+Note that the networks in the examples are trained with limited datasets. These networks should be considered as sample networks to demonstrate the use of plugins in the DeepStream SDK 6.0, to create a redaction application. Developers should train their networks to achieve the level of accuracy needed in their applications.
 
 ---
 
 
 ### Pre-requisites: ###
 
-- [DeepStream SDK 5.0](https://developer.nvidia.com/deepstream-sdk)
+- [DeepStream SDK 6.0](https://developer.nvidia.com/deepstream-sdk)
 
 ### Installing Pre-requisites: ###
 
-Download and install DeepStream SDK 5.0
+Download and install DeepStream SDK 6.0
 
-1. Click `Download` from [NVIDIA Deepstream SDK home page](https://developer.nvidia.com/deepstream-sdk), then select `DeepStream 5.0 for T4 and V100` if you work on NVIDIA dGPUS or select `DeepStream 5.0 for Jetson` if you work on NVIDIA Jetson platforms. 
+1. Click `Download` from [NVIDIA Deepstream SDK home page](https://developer.nvidia.com/deepstream-sdk), then select `DeepStream 6.0 for T4 and V100` if you work on NVIDIA dGPUS or select `DeepStream 6.0 for Jetson` if you work on NVIDIA Jetson platforms. 
 
 2. Login to NVIDIA Developer account.
 
-3. Agree to the terms of license agreement and download DeepStream SDK 5.0.
+3. Agree to the terms of license agreement and download DeepStream SDK 6.0.
 
-4. Follow the installation instructions in the REAME in the downloaded tar file.
+4. Follow the installation instructions in the README in the downloaded tar file.
 
 5. Run the samples following the instructions in the README file to make sure that the DeepStream SDK has been properly installed on your system.
 
@@ -39,7 +39,7 @@ The Redaction pipeline implements the following steps:
 
 * Detect faces and license plates using the networks provided. The “nvinfer” plugin uses the TensorRT for performing this detection. 
 
-* Draw colored rectangles with solid fill to obscure the faces and license plates and thus redact them. The color can be customized by changing the corresponding RBG value in `deepstream_redaction_app.c` (line 109 - 111, line 118 - 120).
+* Draw colored rectangles with solid fill to obscure the faces and license plates and thus redact them. The color can be customized by changing the corresponding RBG value in `deepstream_redaction_app.c` (line 100 - 107, line 109 - 116).
 
 * Display the frames on screen or encode the frames back to an mp4 file and then write the file to disc.
 
