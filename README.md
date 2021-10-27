@@ -68,7 +68,7 @@ A sample output video can be found in folder `sample_videos`.
 
 2. Building the application
 
-	`make`
+	`sudo make`
 
 3. Running the application
 
@@ -78,6 +78,8 @@ A sample output video can be found in folder `sample_videos`.
 							   -o <path-to-output-mp4-file> 
 							   -k <path-to-output-kitti-folder>]
 	```
+
+  By default, app tries to run `/dev/video0` camera stream. Use `-i` option to use file stream.
 
 	run `./deepstream-redaction-app --help` for detailed usage.
 
