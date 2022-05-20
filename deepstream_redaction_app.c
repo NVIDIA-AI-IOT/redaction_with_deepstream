@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2018-2022, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -311,8 +311,9 @@ contact: Shuo Wang (shuow@nvidia.com)");
   streammux = gst_element_factory_make ("nvstreammux", "stream-muxer");
   g_object_set (G_OBJECT (streammux), "width", 1280, "height",
       720, "batch-size", 1, "batched-push-timeout", 40000, NULL);
-  g_object_set (G_OBJECT (streammux), "nvbuf-memory-type", 0, NULL);
-
+  #ifndef PLATFORM_TEGRA
+  g_object_set (G_OBJECT (streammux), "nvbuf-memory-type", 3, NULL);
+  #endif
   gchar pad_name_sink[16] = "sink_0";
   videopad = gst_element_get_request_pad (streammux, pad_name_sink);
 
