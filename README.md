@@ -4,28 +4,28 @@
   <img src="images/redaction_teaser_graphics.png">
 </p>
 
-The example shows how to use DeepStream SDK 6.1 for redacting faces and license plates in video streams.
+The example shows how to use DeepStream SDK 6.3 for redacting faces and license plates in video streams.
 
 The example uses ResNet-10 to detect faces and license plates in the scene on a frame by frame basis. The detected faces and license plates are then automatically redacted. The image composited with the resulting frames can be displayed on screen or be encoded to an MP4 file by the choice of user. The example runs on both NVIDIA dGPUs as well as NVIDIA jetson platforms. The example demonstrates the use of the following plugins of the DeepStream SDK – nvv4l2decoder, nvvideoconvert, nvinfer and nvdsosd.
 
-Note that the networks in the examples are trained with limited datasets. These networks should be considered as sample networks to demonstrate the use of plugins in the DeepStream SDK 6.0, to create a redaction application. Developers should train their networks to achieve the level of accuracy needed in their applications.
+Note that the networks in the examples are trained with limited datasets. These networks should be considered as sample networks to demonstrate the use of plugins in the DeepStream SDK 6.3, to create a redaction application. Developers should train their networks to achieve the level of accuracy needed in their applications.
 
 ---
 
 
 ### Pre-requisites: ###
 
-- [DeepStream SDK 6.1](https://developer.nvidia.com/deepstream-sdk)
+- [DeepStream SDK 6.3](https://developer.nvidia.com/deepstream-sdk)
 
 ### Installing Pre-requisites: ###
 
-Download and install DeepStream SDK 6.1
+Download and install DeepStream SDK 6.3
 
-1. Click `Download` from [NVIDIA Deepstream SDK home page](https://developer.nvidia.com/deepstream-sdk), then select `DeepStream 6.1 for T4 and V100` if you work on NVIDIA dGPUS or select `DeepStream 6.1 for Jetson` if you work on NVIDIA Jetson platforms.
+1. Click `Download` from [NVIDIA Deepstream SDK home page](https://developer.nvidia.com/deepstream-sdk), then select `DeepStream 6.3 for T4 and V100` if you work on NVIDIA dGPUS or select `DeepStream 6.3 for Jetson` if you work on NVIDIA Jetson platforms.
 
 2. Login to NVIDIA Developer account.
 
-3. Agree to the terms of license agreement and download DeepStream SDK 6.1.
+3. Agree to the terms of license agreement and download DeepStream SDK 6.3.
 
 4. Follow the installation instructions in the README in the downloaded tar file.
 
