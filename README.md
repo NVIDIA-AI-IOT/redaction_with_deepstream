@@ -1,3 +1,7 @@
+# ------------------------------------------------------
+# This sample application is no longer maintained
+# ------------------------------------------------------
+
 # An example of using DeepStream SDK for redaction #
 
 <p align="center">
